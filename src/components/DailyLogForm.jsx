@@ -1,6 +1,12 @@
 import { useMemo, useState } from 'react';
 import { ClipboardCheck } from 'lucide-react';
-import { calculateDailyPoints, getChallengeWeek } from '@/lib/points';
+import {
+  calculateActivityPoints,
+  calculateWorkoutPoints,
+  calculateStepsPoints,
+  calculateMobilityPoints,
+  getChallengeWeek,
+} from '@/lib/points';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -23,16 +29,14 @@ const initialState = {
 export default function DailyLogForm({ participants, onSubmit, loading }) {
   const [form, setForm] = useState(initialState);
 
-  const previewPoints = useMemo(
-    () =>
-      calculateDailyPoints({
-        activeMinutes: Number(form.activeMinutes || 0),
-        workoutDone: form.workoutDone,
-        steps: Number(form.steps || 0),
-        mobilityDone: form.mobilityDone,
-      }),
-    [form]
-  );
+  const breakdown = useMemo(() => {
+    const activity = calculateActivityPoints(Number(form.activeMinutes || 0));
+    const workout = calculateWorkoutPoints(form.workoutDone);
+    const steps = calculateStepsPoints(Number(form.steps || 0));
+    const mobility = calculateMobilityPoints(form.mobilityDone);
+    const total = Math.min(activity + workout + steps + mobility, 10);
+    return { activity, workout, steps, mobility, total };
+  }, [form]);
 
   const challengeWeek = getChallengeWeek(form.date);
 
@@ -56,6 +60,13 @@ export default function DailyLogForm({ participants, onSubmit, loading }) {
       name: prev.name,
     }));
   };
+
+  const breakdownRows = [
+    { label: 'Activity', value: breakdown.activity, max: 5 },
+    { label: 'Workout bonus', value: breakdown.workout, max: 2 },
+    { label: 'Steps', value: breakdown.steps, max: 3 },
+    { label: 'Mobility bonus', value: breakdown.mobility, max: 1 },
+  ];
 
   return (
     <Card>
@@ -132,7 +143,7 @@ export default function DailyLogForm({ participants, onSubmit, loading }) {
                 checked={form.workoutDone}
                 onChange={(e) => setForm((prev) => ({ ...prev, workoutDone: e.target.checked }))}
               />
-              Workout completed
+              Workout session (20+ min)
             </label>
 
             <label className="flex items-center gap-3 rounded-xl border bg-white px-3 py-3 text-sm">
@@ -141,7 +152,7 @@ export default function DailyLogForm({ participants, onSubmit, loading }) {
                 checked={form.mobilityDone}
                 onChange={(e) => setForm((prev) => ({ ...prev, mobilityDone: e.target.checked }))}
               />
-              Mobility / stretching completed
+              Mobility / recovery (5+ min)
             </label>
           </div>
 
@@ -163,31 +174,44 @@ export default function DailyLogForm({ participants, onSubmit, loading }) {
 
         <div className="space-y-4 rounded-2xl border bg-white p-4">
           <div>
-            <div className="text-sm font-semibold">Score preview</div>
-            <div className="mt-2 text-4xl font-bold text-primary">{previewPoints}</div>
-            <div className="text-sm text-muted-foreground">out of 10 daily points</div>
+            <div className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+              Score preview
+            </div>
+            <div className="mt-1 flex items-baseline gap-1.5">
+              <span className="text-5xl font-bold tabular-nums text-primary">
+                {breakdown.total}
+              </span>
+              <span className="text-sm text-muted-foreground">/ 10 pts</span>
+            </div>
+            {breakdown.total === 10 && (
+              <div className="mt-1 text-xs font-medium text-accent">Daily cap reached</div>
+            )}
           </div>
 
-          <div className="rounded-xl border bg-slate-50 p-4">
-            <div className="text-sm font-semibold">Challenge week</div>
-            <div className="mt-1 text-sm text-muted-foreground">
+          <div className="space-y-1.5 border-t pt-3">
+            {breakdownRows.map(({ label, value, max }) => (
+              <div key={label} className="flex items-center justify-between text-sm">
+                <span className={value > 0 ? 'text-slate-700' : 'text-muted-foreground'}>
+                  {label}
+                </span>
+                <span className={'tabular-nums font-semibold ' + (value > 0 ? 'text-primary' : 'text-muted-foreground')}>
+                  {value > 0 ? '+' + value : '0 / ' + max}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          <div className="rounded-xl border bg-slate-50 px-3 py-2.5">
+            <div className="text-xs font-semibold uppercase tracking-widest text-slate-500">
+              Challenge week
+            </div>
+            <div className="mt-0.5 text-sm font-medium text-slate-700">
               {challengeWeek === 0
-                ? 'Week 0 baseline'
+                ? 'Week 0 — Baseline'
                 : challengeWeek > 0
-                ? `Week ${challengeWeek}`
+                ? 'Week ' + challengeWeek
                 : 'Before challenge start'}
             </div>
-          </div>
-
-          <div className="rounded-xl border bg-slate-50 p-4 text-sm text-muted-foreground">
-            Daily points are:
-            <ul className="mt-2 space-y-1">
-              <li>• activity minutes</li>
-              <li>• +2 workout completed</li>
-              <li>• step bonus</li>
-              <li>• +1 mobility bonus</li>
-              <li>• capped at 10</li>
-            </ul>
           </div>
         </div>
       </CardContent>

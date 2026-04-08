@@ -46,7 +46,7 @@ export function calculateDailyPoints({
 }
 
 export function isActiveDay({ activeMinutes = 0, workoutDone = false }) {
-  return Number(activeMinutes) >= 20 || Boolean(workoutDone);
+  return Number(activeMinutes) >= 10 || Boolean(workoutDone);
 }
 
 export function calculateConsistencyBonus(activeDays) {
@@ -68,8 +68,8 @@ export function calculateActiveMinutesImprovementBonus(baselineAverage, weeklyAv
 export function calculateStepsImprovementBonus(baselineAverage, weeklyAverage) {
   if (!baselineAverage || baselineAverage <= 0) return 0;
   const increase = (weeklyAverage - baselineAverage) / baselineAverage;
-  if (increase >= 0.2) return 4;
-  if (increase >= 0.1) return 2;
+  if (increase >= 0.2) return 2;
+  if (increase >= 0.1) return 1;
   return 0;
 }
 
@@ -81,7 +81,7 @@ export function getChallengeWeek(dateString) {
 
   if (diffDays < 0) return -1;
   if (diffDays <= 6) return 0;
-  return Math.floor((diffDays - 7) / 7) + 1;
+  return Math.min(Math.floor((diffDays - 7) / 7) + 1, 4);
 }
 
 export function getWeeklyDateRanges() {
@@ -90,7 +90,6 @@ export function getWeeklyDateRanges() {
     { label: 'Week 1', start: '2026-05-04', end: '2026-05-10' },
     { label: 'Week 2', start: '2026-05-11', end: '2026-05-17' },
     { label: 'Week 3', start: '2026-05-18', end: '2026-05-24' },
-    { label: 'Week 4', start: '2026-05-25', end: '2026-05-31' },
-    { label: 'Final Wrap-up', start: '2026-06-01', end: '2026-06-04' },
+    { label: 'Week 4', start: '2026-05-25', end: '2026-06-04' },
   ];
 }

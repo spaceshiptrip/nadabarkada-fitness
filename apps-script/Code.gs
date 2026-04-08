@@ -187,13 +187,13 @@ function getWeeklySummary_() {
     const personLogs = logs.filter(function(log) { return log.name === participant.name; });
     let priorBest = 0;
 
-    [1, 2, 3, 4, 5].forEach(function(week) {
+    [1, 2, 3, 4].forEach(function(week) {
       const weekLogs = personLogs.filter(function(log) { return number_(log.challengeWeek) === week; });
       if (!weekLogs.length) return;
 
       const dailyPointsTotal = sum_(weekLogs.map(function(log) { return number_(log.dailyPoints); }));
       const activeDays = weekLogs.filter(function(log) {
-        return number_(log.activeMinutes) >= 20 || toBool_(log.workoutDone);
+        return number_(log.activeMinutes) >= 10 || toBool_(log.workoutDone);
       }).length;
 
       const consistencyBonus = calculateConsistencyBonus_(activeDays);
@@ -233,12 +233,12 @@ function calculateAllWeeklyBonusesForParticipant_(participant, allLogs) {
   let totalBonuses = 0;
   let priorBest = 0;
 
-  [1, 2, 3, 4, 5].forEach(function(week) {
+  [1, 2, 3, 4].forEach(function(week) {
     const weekLogs = personLogs.filter(function(log) { return number_(log.challengeWeek) === week; });
     if (!weekLogs.length) return;
 
     const activeDays = weekLogs.filter(function(log) {
-      return number_(log.activeMinutes) >= 20 || toBool_(log.workoutDone);
+      return number_(log.activeMinutes) >= 10 || toBool_(log.workoutDone);
     }).length;
 
     const consistencyBonus = calculateConsistencyBonus_(activeDays);
@@ -313,8 +313,8 @@ function calculateStepsImprovementBonus_(baselineAverage, weeklyAverage) {
   if (baseline <= 0) return 0;
 
   const increase = (weekly - baseline) / baseline;
-  if (increase >= 0.2) return 4;
-  if (increase >= 0.1) return 2;
+  if (increase >= 0.2) return 2;
+  if (increase >= 0.1) return 1;
   return 0;
 }
 
@@ -325,7 +325,7 @@ function getChallengeWeek_(dateString) {
 
   if (diffDays < 0) return -1;
   if (diffDays <= 6) return 0;
-  return Math.floor((diffDays - 7) / 7) + 1;
+  return Math.min(Math.floor((diffDays - 7) / 7) + 1, 4);
 }
 
 function getSheet_(name) {

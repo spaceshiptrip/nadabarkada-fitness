@@ -86,9 +86,9 @@ export default function App() {
 
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="section-title">Challenge admin dashboard</h2>
+          <h2 className="section-title">Challenge dashboard</h2>
           <p className="section-subtitle">
-            Use mock mode locally or connect to Google Apps Script for real persistence.
+            Log activity, check standings, and review the challenge rules in one place.
           </p>
         </div>
         <Button variant="outline" onClick={loadAll}>

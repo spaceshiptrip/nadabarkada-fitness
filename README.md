@@ -2,150 +2,178 @@
 
 Fitness Challenge Tracker
 
-A full-stack starter app for a **4-week fitness challenge** with a **baseline week** using:
+A React + Vite frontend with a Google Apps Script + Google Sheets backend for a month-long fitness challenge. The scoring model is designed to reward effort, consistency, and improvement rather than raw fitness alone.
 
-- **React + Vite**
-- **Tailwind CSS**
-- **shadcn/ui-style components**
-- **Google Apps Script**
-- **Google Sheets** for persistence
+## Fitness Challenge Rules
 
-This scaffold is designed for a mixed-fitness group where some people already train regularly and others are more sedentary. The scoring system rewards **effort, consistency, and improvement relative to a personal baseline**.
+### Goal
 
-## Challenge schedule
+Reward effort, consistency, and improvement, not just raw fitness.
 
-- **Baseline Week (Week 0):** April 27, 2026 – May 3, 2026
-- **Week 1 starts:** May 4, 2026
-- **Challenge ends:** June 4, 2026
+Participants of all levels can compete fairly through daily activity and weekly progress relative to their own baseline.
 
-Suggested competition window:
-- **Week 1:** May 4 – May 10
-- **Week 2:** May 11 – May 17
-- **Week 3:** May 18 – May 24
-- **Week 4:** May 25 – May 31
-- **Final days / wrap-up:** June 1 – June 4
+### Challenge Structure
 
-## Point system
+- Week 0 (Apr 27-May 3): Baseline tracking with no scoring
+- Weeks 1-4 (May 4-June 4): Scoring period
 
-This app uses a fair points model so highly trained people do not automatically dominate.
+Baseline is used to calculate weekly improvement bonuses.
 
-### Daily points
+### Daily Scoring
 
-#### 1) Active minutes
-- 0–9 min = 0 points
-- 10–19 min = 1 point
-- 20–29 min = 2 points
-- 30–44 min = 3 points
-- 45–59 min = 4 points
-- 60+ min = 5 points
+Maximum 10 points per day.
 
-#### 2) Workout completed
-- Intentional workout session completed = **2 points**
+#### Activity Minutes
 
-Examples:
-- brisk walk
-- run
-- cycling
-- gym
-- yoga
-- pickleball
-- hiking
-- mobility session if treated as intentional exercise
+- 10-19 minutes = 1 point
+- 20-29 minutes = 2 points
+- 30-44 minutes = 3 points
+- 45-59 minutes = 4 points
+- 60+ minutes = 5 points
 
-#### 3) Steps
-- 0–5,999 = 0 points
-- 6,000–7,999 = 1 point
-- 8,000–9,999 = 2 points
+#### Steps
+
+- 6,000+ = 1 point
+- 8,000+ = 2 points
 - 10,000+ = 3 points
 
-#### 4) Bonus habit
-- 10+ minutes mobility/stretching = **1 point**
+#### Workout Bonus
 
-#### 5) Daily cap
-- **Maximum daily score = 10 points**
+- +2 points for a workout session of 20+ minutes
+- Must be intentional: run, gym, class, sport, and similar activities
+- Max 1 workout bonus per day
 
-This prevents one massive day from overpowering the challenge.
+#### Mobility / Recovery
 
----
+- +1 point for stretching, yoga, or mobility of 5+ minutes
+- Max 1 per day
 
-### Weekly bonuses
+#### Daily Cap
 
-#### A) Consistency bonus
-An active day is a day with either:
-- 20+ active minutes, or
-- a recorded workout
+- Maximum 10 points per day
+- Encourages consistency over extreme efforts
 
-Bonuses:
-- 3 active days = 3 points
-- 5 active days = 6 points
-- 6+ active days = 8 points
+### Weekly Bonuses
 
-#### B) Improvement vs baseline
-Each participant’s baseline is their **Week 0 average**.
+#### Active Days
 
-##### Active minutes improvement
-- +10% over baseline = 3 points
-- +20% over baseline = 5 points
-- +30% over baseline = 7 points
+- 3 days = +3
+- 5 days = +6
+- 6+ days = +8
 
-##### Steps improvement
-- +10% over baseline = 2 points
-- +20% over baseline = 4 points
+Active day = 10+ activity minutes.
 
-#### C) Personal best week bonus
-- Best challenge week so far = 2 points
+#### Improvement vs Baseline
 
-## Why this is fair
+Activity minutes increase:
 
-- Advanced athletes cannot win solely by volume because of the daily cap.
-- Beginners can compete through consistency and improvement.
-- Steps and mobility create multiple ways to score.
-- Weekly bonuses are based on each person’s own starting point.
+- +10% = +3
+- +20% = +5
+- +30% = +7
+
+Steps increase:
+
+- +10% = +1
+- +20% = +2
+
+#### Best Week Bonus
+
+- +2 points for beating your previous highest weekly score
+
+### Teams
+
+Teams are optional and meant to increase motivation and participation without replacing individual competition.
+
+#### Individual Competition
+
+- The main winner is based on total individual points
+
+#### Team Competition
+
+- Team score = average points per member
+- A member must log at least 3 active days in a week to count toward team score
+- Recommended optional adjustment: exclude the lowest scorer each week
+
+#### Optional Team Bonuses
+
+- +2 if all team members hit 3 active days
+- +3 if team average improves versus the prior week
+
+#### Solo Players
+
+- Participants can compete without joining a team
+- Solo players remain eligible for the main leaderboard
+
+### Fair Play Rules
+
+Definitions:
+
+- Workout: 20+ minutes of intentional activity
+- Mobility: 5+ minutes of recovery or stretching
+- Active day: 10+ activity minutes
+
+General rules:
+
+- No double counting activities
+- Max 1 workout bonus per day
+- Activities should reflect real effort
+- Honor system applies
+
+Anti-gaming:
+
+- No splitting one workout into multiple entries
+- Steps and minutes should align with realistic movement
+- Use device data or honest manual entry
+
+### Scoring Philosophy
+
+- Beginners can compete through consistency
+- Advanced participants must improve beyond baseline
+- Everyone has multiple ways to earn points daily
+
+You do not need to be the fittest, just the most consistent.
+
+### Winning
+
+Individual winner:
+
+- Highest total points across all scoring weeks
+
+Optional team winner:
+
+- Highest average team score
+
+Tie-breakers:
+
+1. Most active days
+2. Highest percentage improvement
+3. Longest consistency streak, if tracked
+
+### Example Day
+
+- 45 minute run = 4
+- Workout bonus = +2
+- 10,000 steps = +3
+- Mobility = +1
+
+Total = 10 points after the daily cap
 
 ## Project structure
 
 ```text
 fitness-challenge-app/
-├── apps-script/
-│   ├── Code.gs
-│   ├── appsscript.json
-│   └── SETUP.md
-├── docs/
-│   ├── challenge-rules.md
-│   ├── deployment-guide.md
-│   └── sheets-schema.md
-├── public/
-│   └── favicon.svg
-├── src/
-│   ├── components/
-│   │   ├── ui/
-│   │   │   ├── button.jsx
-│   │   │   ├── card.jsx
-│   │   │   ├── input.jsx
-│   │   │   ├── label.jsx
-│   │   │   ├── table.jsx
-│   │   │   └── tabs.jsx
-│   │   ├── ChallengeOverview.jsx
-│   │   ├── DailyLogForm.jsx
-│   │   ├── Header.jsx
-│   │   ├── LeaderboardTable.jsx
-│   │   ├── ParticipantManager.jsx
-│   │   ├── RulesCard.jsx
-│   │   └── WeeklySummaryCards.jsx
-│   ├── lib/
-│   │   ├── api.js
-│   │   ├── points.js
-│   │   └── utils.js
-│   ├── App.jsx
-│   ├── index.css
-│   └── main.jsx
-├── components.json
-├── index.html
-├── jsconfig.json
-├── package.json
-├── postcss.config.js
-├── tailwind.config.js
-└── vite.config.js
+|-- apps-script/
+|-- docs/
+|-- public/
+|-- src/
+|-- .env.example
+|-- components.json
+|-- index.html
+|-- jsconfig.json
+|-- package.json
+|-- postcss.config.js
+|-- tailwind.config.js
+`-- vite.config.js
 ```
 
 ## Frontend features
@@ -160,6 +188,7 @@ fitness-challenge-app/
 ## Backend features
 
 The included Google Apps Script:
+
 - stores participants in a Google Sheet tab
 - stores daily logs in a Google Sheet tab
 - computes leaderboard and weekly rollups
@@ -168,16 +197,19 @@ The included Google Apps Script:
 ## Local setup
 
 ### 1) Install dependencies
+
 ```bash
 npm install
 ```
 
 ### 2) Start dev server
+
 ```bash
 npm run dev
 ```
 
 ### 3) Build
+
 ```bash
 npm run build
 ```
@@ -190,16 +222,18 @@ Create `.env.local`:
 VITE_APP_SCRIPT_URL=https://script.google.com/macros/s/REPLACE_WITH_YOUR_DEPLOYMENT/exec
 ```
 
-If you leave it blank, the UI can still load in mock/demo mode.
+If you leave it blank, the UI loads in mock/demo mode.
 
 ## Google Apps Script setup
 
 See:
+
 - `apps-script/SETUP.md`
 - `docs/deployment-guide.md`
 - `docs/sheets-schema.md`
 
 High level:
+
 1. Create a Google Sheet.
 2. Add tabs:
    - `Participants`
@@ -208,35 +242,3 @@ High level:
 4. Set the spreadsheet ID in `Code.gs`.
 5. Deploy as a web app.
 6. Put the deployment URL into `VITE_APP_SCRIPT_URL`.
-
-## Suggested Google Sheet tabs
-
-### Participants
-| Name | DeviceType | TeamName | BaselineActiveMinutes | BaselineSteps | Active | CreatedAt |
-
-### DailyLogs
-| Date | Name | ActiveMinutes | WorkoutDone | Steps | MobilityDone | Notes | DailyPoints | ChallengeWeek | CreatedAt |
-
-## Notes
-
-- This scaffold is intentionally simple so you can test locally fast.
-- Authentication is not included yet.
-- Honor system is assumed unless you later add screenshot verification or wearable integrations.
-- The frontend is structured so you can add admin screens, teams, or charts later.
-
-## Scripts
-
-```bash
-npm run dev
-npm run build
-npm run preview
-```
-
-## Next additions you could make
-
-- team scoring
-- Apple Health / Garmin import flow
-- streak tracking
-- charts
-- admin-only rules editing
-- QR code check-in / mobile log entry
