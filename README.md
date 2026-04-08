@@ -214,6 +214,21 @@ npm run dev
 npm run build
 ```
 
+## GitHub Pages deployment
+
+This repo includes a GitHub Actions workflow at `.github/workflows/deploy-pages.yml` that builds and deploys the frontend to GitHub Pages on every push to `main`.
+
+For the first deploy:
+
+1. Open the repository on GitHub.
+2. Go to `Settings -> Pages`.
+3. Set `Source` to `GitHub Actions`.
+4. Push to `main` and wait for the `Deploy to GitHub Pages` workflow to finish.
+
+For this repository, the site will publish at:
+
+`https://spaceshiptrip.github.io/nadabarkada-fitness/`
+
 ## Environment
 
 Create `.env.local`:
