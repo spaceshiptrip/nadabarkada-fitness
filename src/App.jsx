@@ -6,10 +6,12 @@ import ParticipantManager from '@/components/ParticipantManager';
 import DailyLogForm from '@/components/DailyLogForm';
 import LeaderboardTable from '@/components/LeaderboardTable';
 import WeeklySummaryCards from '@/components/WeeklySummaryCards';
+import WeekRingsCalendar from '@/components/WeekRingsCalendar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import {
   addParticipant,
+  getDailyLogs,
   getLeaderboard,
   getParticipants,
   getWeeklySummary,
@@ -20,6 +22,7 @@ export default function App() {
   const [participants, setParticipants] = useState([]);
   const [leaderboard, setLeaderboard] = useState([]);
   const [weeklySummary, setWeeklySummary] = useState([]);
+  const [dailyLogs, setDailyLogs] = useState([]);
   const [participantsSource, setParticipantsSource] = useState('loading');
   const [leaderboardSource, setLeaderboardSource] = useState('loading');
   const [summarySource, setSummarySource] = useState('loading');
@@ -29,15 +32,17 @@ export default function App() {
 
   async function loadAll() {
     try {
-      const [participantsRes, leaderboardRes, summaryRes] = await Promise.all([
+      const [participantsRes, leaderboardRes, summaryRes, logsRes] = await Promise.all([
         getParticipants(),
         getLeaderboard(),
         getWeeklySummary(),
+        getDailyLogs(),
       ]);
 
       setParticipants(participantsRes.data || []);
       setLeaderboard(leaderboardRes.data || []);
       setWeeklySummary(summaryRes.data || []);
+      setDailyLogs(logsRes.data || []);
       setParticipantsSource(participantsRes.source || 'live');
       setLeaderboardSource(leaderboardRes.source || 'live');
       setSummarySource(summaryRes.source || 'live');
@@ -105,6 +110,10 @@ export default function App() {
       <div className="grid gap-6 xl:grid-cols-[1.1fr,0.9fr]">
         <ChallengeOverview />
         <RulesCard />
+      </div>
+
+      <div className="mt-6">
+        <WeekRingsCalendar logs={dailyLogs} participants={participants} />
       </div>
 
       <Tabs defaultValue="log" className="mt-8">
