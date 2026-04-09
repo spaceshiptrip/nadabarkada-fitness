@@ -108,25 +108,20 @@ export default function App() {
       )}
 
       <div className="grid gap-6 xl:grid-cols-[1.1fr,0.9fr]">
-        <ChallengeOverview />
+        <div className="flex flex-col gap-6">
+          <DailyLogForm participants={participants} onSubmit={handleLogEntry} loading={submittingLog} />
+          <ChallengeOverview />
+          <WeekRingsCalendar logs={dailyLogs} participants={participants} />
+        </div>
         <RulesCard />
       </div>
 
-      <div className="mt-6">
-        <WeekRingsCalendar logs={dailyLogs} participants={participants} />
-      </div>
-
-      <Tabs defaultValue="log" className="mt-8">
+      <Tabs defaultValue="participants" className="mt-8">
         <TabsList>
-          <TabsTrigger value="log">Daily log</TabsTrigger>
           <TabsTrigger value="participants">Participants</TabsTrigger>
           <TabsTrigger value="leaderboard">Leaderboard</TabsTrigger>
           <TabsTrigger value="weekly">Weekly summaries</TabsTrigger>
         </TabsList>
-
-        <TabsContent value="log">
-          <DailyLogForm participants={participants} onSubmit={handleLogEntry} loading={submittingLog} />
-        </TabsContent>
 
         <TabsContent value="participants">
           <ParticipantManager
