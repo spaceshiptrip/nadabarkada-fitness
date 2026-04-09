@@ -76,7 +76,7 @@ export default function DailyLogForm({ participants, onSubmit, loading }) {
           Daily log entry
         </CardTitle>
         <CardDescription>
-          Enter daily stats and preview the daily score before submitting.
+          Enter daily stats and preview the daily score before submitting. Week 0 entries build each participant&apos;s baseline, and they do not need to log every day.
         </CardDescription>
       </CardHeader>
       <CardContent className="grid gap-6 xl:grid-cols-[1.2fr,0.8fr]">

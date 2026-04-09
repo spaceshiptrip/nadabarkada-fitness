@@ -19,23 +19,23 @@ export default function Header() {
           </h1>
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-3 md:grid-cols-1 lg:grid-cols-3">
-          <div className="rounded-2xl bg-white/10 p-4 backdrop-blur-sm">
-            <div className="mb-2 flex items-center gap-2 text-blue-100">
+        <div className="mx-auto grid w-full max-w-5xl gap-3 sm:grid-cols-3 md:col-span-2 md:max-w-3xl lg:max-w-5xl">
+          <div className="rounded-2xl bg-white/10 p-4 text-center backdrop-blur-sm">
+            <div className="mb-2 flex items-center justify-center gap-2 text-blue-100">
               <CalendarDays className="h-4 w-4" />
               Schedule
             </div>
             <div className="text-sm font-semibold">Apr 27 – Jun 4, 2026</div>
           </div>
-          <div className="rounded-2xl bg-white/10 p-4 backdrop-blur-sm">
-            <div className="mb-2 flex items-center gap-2 text-blue-100">
+          <div className="rounded-2xl bg-white/10 p-4 text-center backdrop-blur-sm">
+            <div className="mb-2 flex items-center justify-center gap-2 text-blue-100">
               <Activity className="h-4 w-4" />
               Daily cap
             </div>
             <div className="text-sm font-semibold">10 points max</div>
           </div>
-          <div className="rounded-2xl bg-white/10 p-4 backdrop-blur-sm">
-            <div className="mb-2 flex items-center gap-2 text-blue-100">
+          <div className="rounded-2xl bg-white/10 p-4 text-center backdrop-blur-sm">
+            <div className="mb-2 flex items-center justify-center gap-2 text-blue-100">
               <Trophy className="h-4 w-4" />
               Goal
             </div>

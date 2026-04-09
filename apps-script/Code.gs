@@ -48,7 +48,7 @@ function doPost(e) {
 
 function addParticipant_(payload) {
   const sheet = getSheet_(PARTICIPANTS_SHEET);
-  ensureHeaders_(sheet, ['Name', 'DeviceType', 'TeamName', 'BaselineActiveMinutes', 'BaselineSteps', 'Active', 'CreatedAt', 'ProfileImage']);
+  ensureHeaders_(sheet, ['Name', 'DeviceType', 'TeamName', 'BaselineActiveMinutes', 'BaselineSteps', 'Active', 'CreatedAt', 'ProfileImage', 'BaselineOverride']);
 
   const row = [
     payload.name || '',
@@ -59,6 +59,7 @@ function addParticipant_(payload) {
     payload.active !== false,
     new Date(),
     payload.profileImage || '',
+    toBool_(payload.baselineOverride),
   ];
 
   sheet.appendRow(row);
@@ -70,6 +71,7 @@ function addParticipant_(payload) {
     baselineActiveMinutes: number_(payload.baselineActiveMinutes),
     baselineSteps: number_(payload.baselineSteps),
     profileImage: payload.profileImage || '',
+    baselineOverride: toBool_(payload.baselineOverride),
     active: payload.active !== false,
   };
 }
@@ -121,7 +123,7 @@ function addDailyLog_(payload) {
 
 function getParticipants_() {
   const sheet = getSheet_(PARTICIPANTS_SHEET);
-  ensureHeaders_(sheet, ['Name', 'DeviceType', 'TeamName', 'BaselineActiveMinutes', 'BaselineSteps', 'Active', 'CreatedAt', 'ProfileImage']);
+  ensureHeaders_(sheet, ['Name', 'DeviceType', 'TeamName', 'BaselineActiveMinutes', 'BaselineSteps', 'Active', 'CreatedAt', 'ProfileImage', 'BaselineOverride']);
   const rows = getObjects_(sheet);
   return rows
     .filter(function(row) { return String(row.Name || '').trim() !== ''; })
@@ -133,6 +135,7 @@ function getParticipants_() {
         baselineActiveMinutes: number_(row.BaselineActiveMinutes),
         baselineSteps: number_(row.BaselineSteps),
         profileImage: row.ProfileImage || '',
+        baselineOverride: toBool_(row.BaselineOverride),
         active: String(row.Active).toLowerCase() !== 'false',
       };
     });
@@ -163,6 +166,7 @@ function getLeaderboard_() {
   const logs = getDailyLogs_();
 
   return participants.map(function(participant) {
+    const baseline = getParticipantBaseline_(participant, logs);
     const personLogs = logs.filter(function(log) {
       return log.name === participant.name && number_(log.challengeWeek) >= 1;
     });
@@ -174,8 +178,8 @@ function getLeaderboard_() {
       name: participant.name,
       deviceType: participant.deviceType,
       teamName: participant.teamName,
-      baselineActiveMinutes: participant.baselineActiveMinutes,
-      baselineSteps: participant.baselineSteps,
+      baselineActiveMinutes: baseline.activeMinutes,
+      baselineSteps: baseline.steps,
       profileImage: participant.profileImage || '',
       totalPoints: dailyTotal + weeklyBonuses,
     };
@@ -190,6 +194,7 @@ function getWeeklySummary_() {
   const results = [];
 
   participants.forEach(function(participant) {
+    const baseline = getParticipantBaseline_(participant, logs);
     const personLogs = logs.filter(function(log) { return log.name === participant.name; });
     let priorBest = 0;
 
@@ -205,8 +210,8 @@ function getWeeklySummary_() {
       const consistencyBonus = calculateConsistencyBonus_(activeDays);
       const avgActiveMinutes = average_(weekLogs.map(function(log) { return number_(log.activeMinutes); }));
       const avgSteps = average_(weekLogs.map(function(log) { return number_(log.steps); }));
-      const activeMinutesBonus = calculateActiveMinutesImprovementBonus_(participant.baselineActiveMinutes, avgActiveMinutes);
-      const stepsBonus = calculateStepsImprovementBonus_(participant.baselineSteps, avgSteps);
+      const activeMinutesBonus = calculateActiveMinutesImprovementBonus_(baseline.activeMinutes, avgActiveMinutes);
+      const stepsBonus = calculateStepsImprovementBonus_(baseline.steps, avgSteps);
       const improvementBonus = activeMinutesBonus + stepsBonus;
 
       let personalBestBonus = 0;
@@ -235,6 +240,7 @@ function getWeeklySummary_() {
 }
 
 function calculateAllWeeklyBonusesForParticipant_(participant, allLogs) {
+  const baseline = getParticipantBaseline_(participant, allLogs);
   const personLogs = allLogs.filter(function(log) { return log.name === participant.name; });
   let totalBonuses = 0;
   let priorBest = 0;
@@ -250,8 +256,8 @@ function calculateAllWeeklyBonusesForParticipant_(participant, allLogs) {
     const consistencyBonus = calculateConsistencyBonus_(activeDays);
     const avgActiveMinutes = average_(weekLogs.map(function(log) { return number_(log.activeMinutes); }));
     const avgSteps = average_(weekLogs.map(function(log) { return number_(log.steps); }));
-    const activeMinutesBonus = calculateActiveMinutesImprovementBonus_(participant.baselineActiveMinutes, avgActiveMinutes);
-    const stepsBonus = calculateStepsImprovementBonus_(participant.baselineSteps, avgSteps);
+    const activeMinutesBonus = calculateActiveMinutesImprovementBonus_(baseline.activeMinutes, avgActiveMinutes);
+    const stepsBonus = calculateStepsImprovementBonus_(baseline.steps, avgSteps);
 
     const dailyPointsTotal = sum_(weekLogs.map(function(log) { return number_(log.dailyPoints); }));
     const subtotal = dailyPointsTotal + consistencyBonus + activeMinutesBonus + stepsBonus;
@@ -263,6 +269,28 @@ function calculateAllWeeklyBonusesForParticipant_(participant, allLogs) {
   });
 
   return totalBonuses;
+}
+
+function getParticipantBaseline_(participant, logs) {
+  if (toBool_(participant.baselineOverride)) {
+    return {
+      activeMinutes: number_(participant.baselineActiveMinutes),
+      steps: number_(participant.baselineSteps),
+    };
+  }
+
+  const baselineLogs = logs.filter(function(log) {
+    return log.name === participant.name && number_(log.challengeWeek) === 0;
+  });
+
+  if (!baselineLogs.length) {
+    return { activeMinutes: 0, steps: 0 };
+  }
+
+  return {
+    activeMinutes: average_(baselineLogs.map(function(log) { return number_(log.activeMinutes); })),
+    steps: average_(baselineLogs.map(function(log) { return number_(log.steps); })),
+  };
 }
 
 function calculateDailyPoints_(entry) {

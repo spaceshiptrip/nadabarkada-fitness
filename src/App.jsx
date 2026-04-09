@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Header from '@/components/Header';
 import ChallengeOverview from '@/components/ChallengeOverview';
 import RulesCard from '@/components/RulesCard';
@@ -17,6 +17,7 @@ import {
   getWeeklySummary,
   logDailyEntry,
 } from '@/lib/api';
+import { mergeParticipantsWithBaselines } from '@/lib/participants';
 
 export default function App() {
   const [participants, setParticipants] = useState([]);
@@ -54,6 +55,11 @@ export default function App() {
   useEffect(() => {
     loadAll();
   }, []);
+
+  const derivedParticipants = useMemo(
+    () => mergeParticipantsWithBaselines(participants, dailyLogs),
+    [participants, dailyLogs]
+  );
 
   async function handleAddParticipant(payload) {
     try {
@@ -109,9 +115,9 @@ export default function App() {
 
       <div className="grid gap-6 xl:grid-cols-[1.1fr,0.9fr]">
         <div className="flex min-w-0 flex-col gap-6">
-          <DailyLogForm participants={participants} onSubmit={handleLogEntry} loading={submittingLog} />
+          <DailyLogForm participants={derivedParticipants} onSubmit={handleLogEntry} loading={submittingLog} />
           <ChallengeOverview />
-          <WeekRingsCalendar logs={dailyLogs} participants={participants} />
+          <WeekRingsCalendar logs={dailyLogs} participants={derivedParticipants} />
         </div>
         <RulesCard />
       </div>
@@ -125,7 +131,7 @@ export default function App() {
 
         <TabsContent value="participants">
           <ParticipantManager
-            participants={participants}
+            participants={derivedParticipants}
             onAddParticipant={handleAddParticipant}
             loading={loadingParticipants}
           />

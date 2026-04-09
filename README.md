@@ -257,3 +257,43 @@ High level:
 4. Set the spreadsheet ID in `Code.gs`.
 5. Deploy as a web app.
 6. Put the deployment URL into `VITE_APP_SCRIPT_URL`.
+
+## Workflow
+
+Current development can stay fully local. If `VITE_APP_SCRIPT_URL` is not set, the app runs in mock mode and keeps participant and daily log data in browser `localStorage`.
+
+### Baseline Week
+
+- Week 0 (Apr 27-May 3) is for baseline gathering and habit building
+- Participants do not need to log every day during baseline week
+- Baseline averages are computed from the baseline days they actually log
+- Baseline week entries do not count toward the scored competition
+
+### Baseline Calculation
+
+- Baseline active minutes = average active minutes across that participant's Week 0 entries
+- Baseline steps = average steps across that participant's Week 0 entries
+- These computed baseline values are used for weekly improvement bonuses in Weeks 1-4
+
+### Manual Override
+
+- Participant profiles default to computed baseline values
+- There is an `Override computed baseline` option in the participant form
+- If enabled, a participant can enter manual baseline active minutes and manual baseline steps
+- When override is enabled, the manual values are used instead of the computed Week 0 averages
+
+### Participant Setup Flow
+
+1. Add the participant with name, device type, optional team, and optional profile picture.
+2. Leave baseline override off in the normal case.
+3. During Week 0, let the participant submit baseline logs as they are able.
+4. Review the computed baseline shown in the participant roster.
+5. If needed, enable manual override and enter a custom baseline for that participant.
+
+### Local Mock Mode Notes
+
+- Added participants persist locally across page refreshes
+- Uploaded profile pictures persist locally across page refreshes
+- Daily log entries persist locally across page refreshes
+- Leaderboard and weekly summaries use the locally stored participant data and logs
+- When Google Sheets is connected later, `Code.gs` is already aligned to support `ProfileImage` and `BaselineOverride`

@@ -12,6 +12,7 @@ const initialForm = {
   teamName: '',
   baselineActiveMinutes: '',
   baselineSteps: '',
+  baselineOverride: false,
   profileImage: '',
 };
 
@@ -55,6 +56,10 @@ async function resizeProfileImage(file) {
   });
 }
 
+function formatBaselineNumber(value) {
+  return Math.round(Number(value || 0));
+}
+
 export default function ParticipantManager({ participants, onAddParticipant, loading }) {
   const [form, setForm] = useState(initialForm);
   const [imageError, setImageError] = useState('');
@@ -70,6 +75,7 @@ export default function ParticipantManager({ participants, onAddParticipant, loa
       teamName: form.teamName.trim(),
       baselineActiveMinutes: Number(form.baselineActiveMinutes || 0),
       baselineSteps: Number(form.baselineSteps || 0),
+      baselineOverride: form.baselineOverride,
       profileImage: form.profileImage,
       active: true,
     });
@@ -110,7 +116,9 @@ export default function ParticipantManager({ participants, onAddParticipant, loa
           <Users className="h-5 w-5" />
           Participants
         </CardTitle>
-        <CardDescription>Add participants and baseline averages from Week 0.</CardDescription>
+        <CardDescription>
+          Baselines are computed from Week 0 logs. Use a manual override only if someone wants to set their own starting point.
+        </CardDescription>
       </CardHeader>
       <CardContent className="grid gap-6 xl:grid-cols-[1.1fr,1fr]">
         <form onSubmit={submit} className="grid gap-4 rounded-2xl border bg-slate-50 p-4">
@@ -149,6 +157,61 @@ export default function ParticipantManager({ participants, onAddParticipant, loa
             />
           </div>
 
+          <div className="rounded-2xl border bg-white p-3">
+            <div className="text-sm font-medium text-slate-700">Baseline source</div>
+            <div className="mt-1 text-xs text-muted-foreground">
+              Week 0 entries are averaged across the days a participant actually logs. Daily logging is encouraged, not required.
+            </div>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <Button
+                type="button"
+                variant={form.baselineOverride ? 'secondary' : 'outline'}
+                size="sm"
+                onClick={() =>
+                  setForm((prev) => ({
+                    ...prev,
+                    baselineOverride: !prev.baselineOverride,
+                    baselineActiveMinutes: prev.baselineOverride ? '' : prev.baselineActiveMinutes,
+                    baselineSteps: prev.baselineOverride ? '' : prev.baselineSteps,
+                  }))
+                }
+              >
+                {form.baselineOverride ? 'Use computed baseline' : 'Override computed baseline'}
+              </Button>
+            </div>
+
+            {form.baselineOverride && (
+              <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                <div className="grid gap-2">
+                  <Label htmlFor="baseline-active">Manual baseline active minutes</Label>
+                  <Input
+                    id="baseline-active"
+                    type="number"
+                    min="0"
+                    value={form.baselineActiveMinutes}
+                    onChange={(e) =>
+                      setForm((prev) => ({ ...prev, baselineActiveMinutes: e.target.value }))
+                    }
+                    placeholder="e.g. 25"
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="baseline-steps">Manual baseline steps</Label>
+                  <Input
+                    id="baseline-steps"
+                    type="number"
+                    min="0"
+                    value={form.baselineSteps}
+                    onChange={(e) =>
+                      setForm((prev) => ({ ...prev, baselineSteps: e.target.value }))
+                    }
+                    placeholder="e.g. 7200"
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+
           <div className="grid gap-3">
             <Label htmlFor="participant-photo">Profile picture</Label>
             <div className="flex items-center gap-3 rounded-2xl border bg-white p-3">
@@ -176,31 +239,6 @@ export default function ParticipantManager({ participants, onAddParticipant, loa
                   Clear
                 </Button>
               )}
-            </div>
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="grid gap-2">
-              <Label htmlFor="baseline-active">Baseline avg active minutes</Label>
-              <Input
-                id="baseline-active"
-                type="number"
-                min="0"
-                value={form.baselineActiveMinutes}
-                onChange={(e) => setForm((prev) => ({ ...prev, baselineActiveMinutes: e.target.value }))}
-                placeholder="e.g. 25"
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="baseline-steps">Baseline avg steps</Label>
-              <Input
-                id="baseline-steps"
-                type="number"
-                min="0"
-                value={form.baselineSteps}
-                onChange={(e) => setForm((prev) => ({ ...prev, baselineSteps: e.target.value }))}
-                placeholder="e.g. 7200"
-              />
             </div>
           </div>
 
@@ -232,8 +270,15 @@ export default function ParticipantManager({ participants, onAddParticipant, loa
                   </div>
                 </div>
                 <div className="mt-2 text-xs text-muted-foreground">
-                  Baseline: {participant.baselineActiveMinutes || 0} active min/day,{' '}
-                  {participant.baselineSteps || 0} steps/day
+                  Baseline: {formatBaselineNumber(participant.effectiveBaselineActiveMinutes)} active min/day,{' '}
+                  {formatBaselineNumber(participant.effectiveBaselineSteps)} steps/day
+                </div>
+                <div className="mt-1 text-xs text-muted-foreground">
+                  {participant.baselineSource === 'manual'
+                    ? 'Manual override enabled.'
+                    : participant.baselineLoggedDays > 0
+                    ? `Computed from ${participant.baselineLoggedDays} baseline ${participant.baselineLoggedDays === 1 ? 'entry' : 'entries'}.`
+                    : 'No baseline entries yet. Week 0 logs will compute this automatically.'}
                 </div>
               </div>
             ))}

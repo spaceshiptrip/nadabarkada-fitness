@@ -9,7 +9,7 @@ Create a Google Sheet and add two tabs:
 
 ### Participants
 ```text
-Name | DeviceType | TeamName | BaselineActiveMinutes | BaselineSteps | Active | CreatedAt | ProfileImage
+Name | DeviceType | TeamName | BaselineActiveMinutes | BaselineSteps | Active | CreatedAt | ProfileImage | BaselineOverride
 ```
 
 ### DailyLogs

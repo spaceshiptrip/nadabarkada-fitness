@@ -37,7 +37,7 @@ export default function RulesCard() {
       <CardHeader>
         <CardTitle>Rules at a glance</CardTitle>
         <CardDescription>
-          Active day = 10+ activity minutes. Full rules in the README.
+          Active day = 10+ activity minutes. Week 0 establishes each participant&apos;s baseline averages.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">

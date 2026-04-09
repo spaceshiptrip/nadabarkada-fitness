@@ -1,15 +1,22 @@
 import { calculateDailyPoints, getChallengeWeek } from '@/lib/points';
-import { normalizeParticipant } from '@/lib/participants';
+import {
+  buildLeaderboardRows,
+  buildWeeklySummaryRows,
+  normalizeParticipant,
+} from '@/lib/participants';
 
 const APP_SCRIPT_URL = import.meta.env.VITE_APP_SCRIPT_URL?.trim();
+const MOCK_PARTICIPANTS_KEY = 'fitness-challenge:participants';
+const MOCK_DAILY_LOGS_KEY = 'fitness-challenge:daily-logs';
 
 const mockParticipants = [
   {
     name: 'Jay',
     deviceType: 'Garmin',
     teamName: 'Trail Blazers',
-    baselineActiveMinutes: 35,
-    baselineSteps: 7800,
+    baselineActiveMinutes: 0,
+    baselineSteps: 0,
+    baselineOverride: false,
     profileImage: '',
     active: true,
   },
@@ -17,8 +24,9 @@ const mockParticipants = [
     name: 'Maria',
     deviceType: 'Apple Watch',
     teamName: 'Consistency Crew',
-    baselineActiveMinutes: 18,
-    baselineSteps: 5200,
+    baselineActiveMinutes: 0,
+    baselineSteps: 0,
+    baselineOverride: false,
     profileImage: '',
     active: true,
   },
@@ -51,25 +59,6 @@ function withComputedDailyPoints(entry) {
   };
 }
 
-function buildMockLeaderboard() {
-  const participants = mockParticipants.map((p) => normalizeParticipant({ ...p }));
-  const logs = mockDailyLogs.map(withComputedDailyPoints);
-
-  return participants.map((participant) => {
-    const personLogs = logs.filter((log) => log.name === participant.name);
-    const totalPoints = personLogs.reduce((sum, log) => sum + log.dailyPoints, 0);
-    return {
-      name: participant.name,
-      deviceType: participant.deviceType,
-      teamName: participant.teamName,
-      baselineActiveMinutes: participant.baselineActiveMinutes,
-      baselineSteps: participant.baselineSteps,
-      profileImage: participant.profileImage,
-      totalPoints,
-    };
-  }).sort((a, b) => b.totalPoints - a.totalPoints);
-}
-
 async function fetchJson(url) {
   const response = await fetch(url);
   if (!response.ok) throw new Error(`Request failed: ${response.status}`);
@@ -86,9 +75,42 @@ async function postJson(payload) {
   return response.json();
 }
 
+function getStoredJson(key, fallback) {
+  if (typeof window === 'undefined') return fallback;
+
+  try {
+    const raw = window.localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function setStoredJson(key, value) {
+  if (typeof window === 'undefined') return;
+  window.localStorage.setItem(key, JSON.stringify(value));
+}
+
+function loadMockParticipants() {
+  const stored = getStoredJson(MOCK_PARTICIPANTS_KEY, null);
+  if (stored) return stored.map(normalizeParticipant);
+
+  const seeded = mockParticipants.map(normalizeParticipant);
+  setStoredJson(MOCK_PARTICIPANTS_KEY, seeded);
+  return seeded;
+}
+
+function loadMockDailyLogs() {
+  const stored = getStoredJson(MOCK_DAILY_LOGS_KEY, null);
+  if (stored) return stored.map(withComputedDailyPoints);
+
+  setStoredJson(MOCK_DAILY_LOGS_KEY, mockDailyLogs);
+  return mockDailyLogs.map(withComputedDailyPoints);
+}
+
 export async function getParticipants() {
   if (!APP_SCRIPT_URL) {
-    return { ok: true, data: mockParticipants.map(normalizeParticipant), source: 'mock' };
+    return { ok: true, data: loadMockParticipants(), source: 'mock' };
   }
 
   const response = await fetchJson(`${APP_SCRIPT_URL}?action=participants`);
@@ -99,18 +121,29 @@ export async function getParticipants() {
 }
 
 export async function addParticipant(payload) {
-  if (!APP_SCRIPT_URL) return { ok: true, data: normalizeParticipant(payload), source: 'mock' };
+  if (!APP_SCRIPT_URL) {
+    const participants = loadMockParticipants();
+    const nextParticipant = normalizeParticipant(payload);
+    setStoredJson(MOCK_PARTICIPANTS_KEY, [...participants, nextParticipant]);
+    return { ok: true, data: nextParticipant, source: 'mock' };
+  }
   return postJson({ action: 'addParticipant', ...payload });
 }
 
 export async function getLeaderboard() {
-  if (!APP_SCRIPT_URL) return { ok: true, data: buildMockLeaderboard(), source: 'mock' };
+  if (!APP_SCRIPT_URL) {
+    return {
+      ok: true,
+      data: buildLeaderboardRows(loadMockParticipants(), loadMockDailyLogs()),
+      source: 'mock',
+    };
+  }
   return fetchJson(`${APP_SCRIPT_URL}?action=leaderboard`);
 }
 
 export async function getDailyLogs() {
   if (!APP_SCRIPT_URL) {
-    return { ok: true, data: mockDailyLogs.map(withComputedDailyPoints), source: 'mock' };
+    return { ok: true, data: loadMockDailyLogs(), source: 'mock' };
   }
   return fetchJson(`${APP_SCRIPT_URL}?action=dailyLogs`);
 }
@@ -119,10 +152,7 @@ export async function getWeeklySummary() {
   if (!APP_SCRIPT_URL) {
     return {
       ok: true,
-      data: [
-        { name: 'Jay',   week: 1, dailyPointsTotal: 10, consistencyBonus: 3, improvementBonus: 5, personalBestBonus: 2, weeklyTotal: 20 },
-        { name: 'Maria', week: 1, dailyPointsTotal: 8,  consistencyBonus: 3, improvementBonus: 3, personalBestBonus: 2, weeklyTotal: 16 },
-      ],
+      data: buildWeeklySummaryRows(loadMockParticipants(), loadMockDailyLogs()),
       source: 'mock',
     };
   }
@@ -131,13 +161,15 @@ export async function getWeeklySummary() {
 
 export async function logDailyEntry(payload) {
   if (!APP_SCRIPT_URL) {
+    const nextEntry = withComputedDailyPoints(payload);
+    const logs = loadMockDailyLogs().filter(
+      (entry) => !(entry.name === payload.name && entry.date === payload.date)
+    );
+    setStoredJson(MOCK_DAILY_LOGS_KEY, [...logs, payload]);
+
     return {
       ok: true,
-      data: {
-        ...payload,
-        dailyPoints: calculateDailyPoints(payload),
-        challengeWeek: getChallengeWeek(payload.date),
-      },
+      data: nextEntry,
       source: 'mock',
     };
   }

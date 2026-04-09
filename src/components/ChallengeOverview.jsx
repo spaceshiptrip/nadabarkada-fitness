@@ -10,7 +10,7 @@ export default function ChallengeOverview() {
       <CardHeader>
         <CardTitle>Challenge timeline</CardTitle>
         <CardDescription>
-          Baseline week begins April 27, 2026. Scored competition starts May 4, 2026.
+          Baseline week begins April 27, 2026. Week 0 logs set each participant&apos;s starting averages, and scored competition starts May 4, 2026.
         </CardDescription>
       </CardHeader>
       <CardContent>
