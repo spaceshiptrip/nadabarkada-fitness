@@ -1,11 +1,16 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 
-export default function WeeklySummaryCards({ rows, source }) {
+export default function WeeklySummaryCards({
+  rows,
+  source,
+  title = 'Weekly summaries',
+  description = 'Weekly rollups and bonuses.',
+}) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Weekly summaries</CardTitle>
-        <CardDescription>Weekly rollups and bonuses. Source: {source || 'unknown'}.</CardDescription>
+        <CardTitle>{title}</CardTitle>
+        <CardDescription>{description} Source: {source || 'unknown'}.</CardDescription>
       </CardHeader>
       <CardContent>
         {rows.length === 0 ? (

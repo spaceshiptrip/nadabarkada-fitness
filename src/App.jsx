@@ -8,7 +8,6 @@ import DailyLogForm from '@/components/DailyLogForm';
 import LeaderboardTable from '@/components/LeaderboardTable';
 import WeeklySummaryCards from '@/components/WeeklySummaryCards';
 import WeekRingsCalendar from '@/components/WeekRingsCalendar';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import {
   addParticipant,
@@ -122,11 +121,15 @@ export default function App() {
         </div>
       )}
 
+      <div className="mb-6">
+        <ChallengeOverview />
+      </div>
+
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="section-title">Challenge dashboard</h2>
           <p className="section-subtitle">
-            Log activity, check standings, and review the challenge rules in one place.
+            Log activity, check weekly progress, and review standings in one place.
           </p>
         </div>
         <Button variant="outline" onClick={loadAll}>
@@ -140,12 +143,41 @@ export default function App() {
         </div>
       )}
 
-      <div className={`grid gap-6 ${showRules ? 'xl:grid-cols-[1.1fr,0.9fr]' : ''}`}>
-        <div className="flex min-w-0 flex-col gap-6">
-          <DailyLogForm participants={derivedParticipants} onSubmit={handleLogEntry} loading={submittingLog} />
-          <ChallengeOverview />
-          <WeekRingsCalendar logs={dailyLogs} participants={derivedParticipants} />
+      <div className={`mb-8 grid gap-6 ${showRules ? 'xl:grid-cols-[1.15fr,0.85fr]' : ''}`}>
+        <div className="min-w-0 space-y-8">
+          <div className="grid gap-6 xl:grid-cols-2">
+            <div className="min-w-0">
+              <DailyLogForm participants={derivedParticipants} onSubmit={handleLogEntry} loading={submittingLog} />
+            </div>
+            <div className="min-w-0">
+              <WeekRingsCalendar
+                logs={dailyLogs}
+                participants={derivedParticipants}
+                title="Your week at a glance"
+              />
+            </div>
+          </div>
+
+          <div className="grid gap-6 xl:grid-cols-2">
+            <div className="min-w-0">
+              <WeeklySummaryCards
+                rows={weeklySummary}
+                source={summarySource}
+                title="Leaderboard week at a glance"
+                description="Weekly rollups and bonuses by participant."
+              />
+            </div>
+            <div className="min-w-0">
+              <LeaderboardTable
+                rows={leaderboard}
+                source={leaderboardSource}
+                title="Challenge leaderboard"
+                description="Ranked by total challenge points."
+              />
+            </div>
+          </div>
         </div>
+
         {showRules && (
           <div className="hidden xl:block">
             <RulesCard />
@@ -153,30 +185,19 @@ export default function App() {
         )}
       </div>
 
-      <Tabs defaultValue="participants" className="mt-8">
-        <TabsList>
-          <TabsTrigger value="participants">Participants</TabsTrigger>
-          <TabsTrigger value="leaderboard">Leaderboard</TabsTrigger>
-          <TabsTrigger value="weekly">Weekly summaries</TabsTrigger>
-        </TabsList>
+      <div className="mb-4">
+        <h2 className="section-title">Admin panels</h2>
+        <p className="section-subtitle">
+          Manage participants, baseline overrides, and profile photos.
+        </p>
+      </div>
 
-        <TabsContent value="participants">
-          <ParticipantManager
-            participants={derivedParticipants}
-            onAddParticipant={handleAddParticipant}
-            loading={loadingParticipants}
-          />
-          <div className="mt-4 text-sm text-muted-foreground">Data source: {participantsSource}</div>
-        </TabsContent>
-
-        <TabsContent value="leaderboard">
-          <LeaderboardTable rows={leaderboard} source={leaderboardSource} />
-        </TabsContent>
-
-        <TabsContent value="weekly">
-          <WeeklySummaryCards rows={weeklySummary} source={summarySource} />
-        </TabsContent>
-      </Tabs>
+      <ParticipantManager
+        participants={derivedParticipants}
+        onAddParticipant={handleAddParticipant}
+        loading={loadingParticipants}
+      />
+      <div className="mt-4 text-sm text-muted-foreground">Data source: {participantsSource}</div>
     </div>
   );
 }

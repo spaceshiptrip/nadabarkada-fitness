@@ -69,7 +69,12 @@ function shortDate(dateStr) {
   return `${d.getMonth() + 1}/${d.getDate()}`;
 }
 
-export default function WeekRingsCalendar({ logs, participants }) {
+export default function WeekRingsCalendar({
+  logs,
+  participants,
+  title = 'Week at a glance',
+  description = 'Daily activity rings per participant.',
+}) {
   const weeks = getWeeklyDateRanges();
   const [selectedWeek, setSelectedWeek] = useState(0);
 
@@ -87,9 +92,9 @@ export default function WeekRingsCalendar({ logs, participants }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Week at a glance</CardTitle>
+        <CardTitle>{title}</CardTitle>
         <CardDescription>
-          Daily activity rings per participant.{' '}
+          {description}{' '}
           <span style={{ color: RING_MOVE }}>&#9679;</span> Points{' '}
           <span style={{ color: RING_EXERCISE }}>&#9679;</span> Active min{' '}
           <span style={{ color: RING_STAND }}>&#9679;</span> Steps

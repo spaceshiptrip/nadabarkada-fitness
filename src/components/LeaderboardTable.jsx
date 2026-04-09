@@ -2,16 +2,21 @@ import { Trophy } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
-export default function LeaderboardTable({ rows, source }) {
+export default function LeaderboardTable({
+  rows,
+  source,
+  title = 'Leaderboard',
+  description = 'Ranked by total challenge points.',
+}) {
   return (
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Trophy className="h-5 w-5" />
-          Leaderboard
+          {title}
         </CardTitle>
         <CardDescription>
-          Ranked by total challenge points. Source: {source || 'unknown'}.
+          {description} Source: {source || 'unknown'}.
         </CardDescription>
       </CardHeader>
       <CardContent>
