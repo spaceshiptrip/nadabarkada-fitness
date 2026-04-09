@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { ChevronDown, ChevronUp } from 'lucide-react';
 import Header from '@/components/Header';
 import ChallengeOverview from '@/components/ChallengeOverview';
 import RulesCard from '@/components/RulesCard';
@@ -30,6 +31,7 @@ export default function App() {
   const [loadingParticipants, setLoadingParticipants] = useState(false);
   const [submittingLog, setSubmittingLog] = useState(false);
   const [message, setMessage] = useState('');
+  const [showRules, setShowRules] = useState(true);
 
   async function loadAll() {
     try {
@@ -95,6 +97,31 @@ export default function App() {
     <div className="app-shell">
       <Header />
 
+      <div className="mb-6 rounded-2xl border bg-white p-4 shadow-soft">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <div className="text-sm font-semibold text-slate-800">Rules at a glance</div>
+            <div className="text-sm text-muted-foreground">
+              Toggle the rules panel without losing the desktop side placement.
+            </div>
+          </div>
+          <Button
+            variant="outline"
+            onClick={() => setShowRules((current) => !current)}
+            aria-expanded={showRules}
+          >
+            {showRules ? <ChevronUp className="mr-2 h-4 w-4" /> : <ChevronDown className="mr-2 h-4 w-4" />}
+            {showRules ? 'Collapse rules' : 'Expand rules'}
+          </Button>
+        </div>
+      </div>
+
+      {showRules && (
+        <div className="mb-6 xl:hidden">
+          <RulesCard />
+        </div>
+      )}
+
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="section-title">Challenge dashboard</h2>
@@ -113,13 +140,17 @@ export default function App() {
         </div>
       )}
 
-      <div className="grid gap-6 xl:grid-cols-[1.1fr,0.9fr]">
+      <div className={`grid gap-6 ${showRules ? 'xl:grid-cols-[1.1fr,0.9fr]' : ''}`}>
         <div className="flex min-w-0 flex-col gap-6">
           <DailyLogForm participants={derivedParticipants} onSubmit={handleLogEntry} loading={submittingLog} />
           <ChallengeOverview />
           <WeekRingsCalendar logs={dailyLogs} participants={derivedParticipants} />
         </div>
-        <RulesCard />
+        {showRules && (
+          <div className="hidden xl:block">
+            <RulesCard />
+          </div>
+        )}
       </div>
 
       <Tabs defaultValue="participants" className="mt-8">
