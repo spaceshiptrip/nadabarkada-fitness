@@ -11,13 +11,14 @@ function doGet(e) {
 
   try {
     if (action === 'participants') return json_({ ok: true, data: getParticipants_(), source: 'live' });
+    if (action === 'dailyLogs') return json_({ ok: true, data: getDailyLogs_(), source: 'live' });
     if (action === 'leaderboard') return json_({ ok: true, data: getLeaderboard_(), source: 'live' });
     if (action === 'weeklySummary') return json_({ ok: true, data: getWeeklySummary_(), source: 'live' });
 
     return json_({
       ok: true,
       message: 'Fitness Challenge Tracker API',
-      actions: ['participants', 'leaderboard', 'weeklySummary'],
+      actions: ['participants', 'dailyLogs', 'leaderboard', 'weeklySummary'],
     });
   } catch (error) {
     return json_({ ok: false, error: String(error) });
@@ -47,7 +48,7 @@ function doPost(e) {
 
 function addParticipant_(payload) {
   const sheet = getSheet_(PARTICIPANTS_SHEET);
-  ensureHeaders_(sheet, ['Name', 'DeviceType', 'TeamName', 'BaselineActiveMinutes', 'BaselineSteps', 'Active', 'CreatedAt']);
+  ensureHeaders_(sheet, ['Name', 'DeviceType', 'TeamName', 'BaselineActiveMinutes', 'BaselineSteps', 'Active', 'CreatedAt', 'ProfileImage']);
 
   const row = [
     payload.name || '',
@@ -57,6 +58,7 @@ function addParticipant_(payload) {
     number_(payload.baselineSteps),
     payload.active !== false,
     new Date(),
+    payload.profileImage || '',
   ];
 
   sheet.appendRow(row);
@@ -67,6 +69,7 @@ function addParticipant_(payload) {
     teamName: payload.teamName || '',
     baselineActiveMinutes: number_(payload.baselineActiveMinutes),
     baselineSteps: number_(payload.baselineSteps),
+    profileImage: payload.profileImage || '',
     active: payload.active !== false,
   };
 }
@@ -118,6 +121,7 @@ function addDailyLog_(payload) {
 
 function getParticipants_() {
   const sheet = getSheet_(PARTICIPANTS_SHEET);
+  ensureHeaders_(sheet, ['Name', 'DeviceType', 'TeamName', 'BaselineActiveMinutes', 'BaselineSteps', 'Active', 'CreatedAt', 'ProfileImage']);
   const rows = getObjects_(sheet);
   return rows
     .filter(function(row) { return String(row.Name || '').trim() !== ''; })
@@ -128,6 +132,7 @@ function getParticipants_() {
         teamName: row.TeamName,
         baselineActiveMinutes: number_(row.BaselineActiveMinutes),
         baselineSteps: number_(row.BaselineSteps),
+        profileImage: row.ProfileImage || '',
         active: String(row.Active).toLowerCase() !== 'false',
       };
     });
@@ -171,6 +176,7 @@ function getLeaderboard_() {
       teamName: participant.teamName,
       baselineActiveMinutes: participant.baselineActiveMinutes,
       baselineSteps: participant.baselineSteps,
+      profileImage: participant.profileImage || '',
       totalPoints: dailyTotal + weeklyBonuses,
     };
   }).sort(function(a, b) {
@@ -338,7 +344,15 @@ function getSheet_(name) {
 function ensureHeaders_(sheet, headers) {
   if (sheet.getLastRow() === 0) {
     sheet.appendRow(headers);
+    return;
   }
+
+  const existingHeaders = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  headers.forEach(function(header, index) {
+    if (existingHeaders[index] !== header) {
+      sheet.getRange(1, index + 1).setValue(header);
+    }
+  });
 }
 
 function getObjects_(sheet) {

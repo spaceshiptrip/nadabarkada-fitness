@@ -1,4 +1,5 @@
 import { calculateDailyPoints, getChallengeWeek } from '@/lib/points';
+import { normalizeParticipant } from '@/lib/participants';
 
 const APP_SCRIPT_URL = import.meta.env.VITE_APP_SCRIPT_URL?.trim();
 
@@ -9,6 +10,7 @@ const mockParticipants = [
     teamName: 'Trail Blazers',
     baselineActiveMinutes: 35,
     baselineSteps: 7800,
+    profileImage: '',
     active: true,
   },
   {
@@ -17,6 +19,7 @@ const mockParticipants = [
     teamName: 'Consistency Crew',
     baselineActiveMinutes: 18,
     baselineSteps: 5200,
+    profileImage: '',
     active: true,
   },
 ];
@@ -49,7 +52,7 @@ function withComputedDailyPoints(entry) {
 }
 
 function buildMockLeaderboard() {
-  const participants = mockParticipants.map((p) => ({ ...p }));
+  const participants = mockParticipants.map((p) => normalizeParticipant({ ...p }));
   const logs = mockDailyLogs.map(withComputedDailyPoints);
 
   return participants.map((participant) => {
@@ -61,6 +64,7 @@ function buildMockLeaderboard() {
       teamName: participant.teamName,
       baselineActiveMinutes: participant.baselineActiveMinutes,
       baselineSteps: participant.baselineSteps,
+      profileImage: participant.profileImage,
       totalPoints,
     };
   }).sort((a, b) => b.totalPoints - a.totalPoints);
@@ -83,12 +87,19 @@ async function postJson(payload) {
 }
 
 export async function getParticipants() {
-  if (!APP_SCRIPT_URL) return { ok: true, data: mockParticipants, source: 'mock' };
-  return fetchJson(`${APP_SCRIPT_URL}?action=participants`);
+  if (!APP_SCRIPT_URL) {
+    return { ok: true, data: mockParticipants.map(normalizeParticipant), source: 'mock' };
+  }
+
+  const response = await fetchJson(`${APP_SCRIPT_URL}?action=participants`);
+  return {
+    ...response,
+    data: (response.data || []).map(normalizeParticipant),
+  };
 }
 
 export async function addParticipant(payload) {
-  if (!APP_SCRIPT_URL) return { ok: true, data: payload, source: 'mock' };
+  if (!APP_SCRIPT_URL) return { ok: true, data: normalizeParticipant(payload), source: 'mock' };
   return postJson({ action: 'addParticipant', ...payload });
 }
 

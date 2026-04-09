@@ -9,7 +9,7 @@ Create a Google Sheet and add two tabs:
 
 ### Participants
 ```text
-Name | DeviceType | TeamName | BaselineActiveMinutes | BaselineSteps | Active | CreatedAt
+Name | DeviceType | TeamName | BaselineActiveMinutes | BaselineSteps | Active | CreatedAt | ProfileImage
 ```
 
 ### DailyLogs
@@ -42,6 +42,7 @@ VITE_APP_SCRIPT_URL=https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec
 ## 7) Test GET endpoints
 Open these in a browser:
 - `...?action=participants`
+- `...?action=dailyLogs`
 - `...?action=leaderboard`
 - `...?action=weeklySummary`
 

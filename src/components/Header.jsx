@@ -7,15 +7,16 @@ export default function Header() {
         <div>
           <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em]">
             <Trophy className="h-4 w-4" />
-            Fitness Challenge Tracker
+            NadaBarkada Fitness Challenge 
           </div>
-          <h1 className="text-3xl font-bold tracking-tight md:text-5xl">
-            April 27 baseline. May 4 start. June 4 finish.
+        </div>
+
+        <div className="md:col-span-2">
+          <h1 className="text-center text-3xl font-bold tracking-tight md:text-5xl">
+            <span className="block">April 27 baseline.</span>
+            <span className="block">May 4 start.</span>
+            <span className="block">June 4 finish.</span>
           </h1>
-          <p className="mt-3 max-w-3xl text-sm text-blue-100 md:text-base">
-            Built for mixed fitness levels with a fair points system based on activity, consistency,
-            and improvement versus each participant’s own baseline.
-          </p>
         </div>
 
         <div className="grid gap-3 sm:grid-cols-3 md:grid-cols-1 lg:grid-cols-3">

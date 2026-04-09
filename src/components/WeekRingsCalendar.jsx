@@ -2,16 +2,17 @@ import { useState } from 'react';
 import { calculateDailyPoints } from '@/lib/points';
 import { getWeeklyDateRanges } from '@/lib/points';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { getParticipantProfileImage } from '@/lib/participants';
 
 // Apple Watch ring colors
 const RING_MOVE     = '#FA3E57'; // red   — daily points (main ring)
 const RING_EXERCISE = '#92E82C'; // green — active minutes
 const RING_STAND    = '#1EEAEF'; // cyan  — steps
 
-function ActivityRings({ log, size = 52 }) {
+function ActivityRings({ log, size = 40 }) {
   const cx = size / 2;
   const cy = size / 2;
-  const sw = 5;
+  const sw = size < 44 ? 4 : 5;
   const gap = 1;
 
   const hasData = !!log;
@@ -75,9 +76,9 @@ export default function WeekRingsCalendar({ logs, participants }) {
   const week = weeks[selectedWeek];
   const days = Array.from({ length: 7 }, (_, i) => addDays(week.start, i));
 
-  const names = participants.length > 0
-    ? participants.map((p) => p.name)
-    : [...new Set(logs.map((l) => l.name))];
+  const visibleParticipants = participants.length > 0
+    ? participants
+    : [...new Set(logs.map((l) => l.name))].map((name) => ({ name, profileImage: '' }));
 
   function getLog(name, date) {
     return logs.find((l) => l.name === name && l.date === date) || null;
@@ -114,30 +115,41 @@ export default function WeekRingsCalendar({ logs, participants }) {
 
         {/* Calendar grid */}
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[480px]">
+          <table className="w-full table-fixed">
             <thead>
               <tr>
-                <th className="w-20 pb-2 text-left text-xs font-medium text-muted-foreground" />
+                <th className="w-14 pb-2 text-left text-[10px] font-medium text-muted-foreground sm:w-20 sm:text-xs" />
                 {days.map((date, i) => (
                   <th key={date} className="pb-2 text-center">
-                    <div className="text-xs font-semibold text-slate-700">{DAY_LABELS[i]}</div>
-                    <div className="text-xs text-muted-foreground">{shortDate(date)}</div>
+                    <div className="text-[10px] font-semibold text-slate-700 sm:text-xs">{DAY_LABELS[i]}</div>
+                    <div className="text-[10px] text-muted-foreground sm:text-xs">{shortDate(date)}</div>
                   </th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {names.map((name) => (
-                <tr key={name} className="border-t">
-                  <td className="py-3 pr-2 text-sm font-medium text-slate-700">{name}</td>
+              {visibleParticipants.map((participant) => (
+                <tr key={participant.name} className="border-t">
+                  <td className="py-2 pr-1 align-top sm:py-3 sm:pr-2">
+                    <div className="flex flex-col items-center gap-1">
+                      <img
+                        src={getParticipantProfileImage(participant.profileImage)}
+                        alt={participant.name}
+                        className="h-9 w-9 rounded-full border object-cover sm:h-11 sm:w-11"
+                      />
+                      <span className="text-center text-[10px] font-medium leading-tight text-slate-700 sm:text-xs">
+                        {participant.name}
+                      </span>
+                    </div>
+                  </td>
                   {days.map((date) => {
-                    const log = getLog(name, date);
+                    const log = getLog(participant.name, date);
                     const pts = log ? (log.dailyPoints ?? calculateDailyPoints(log)) : null;
                     return (
-                      <td key={date} className="py-3 text-center">
+                      <td key={date} className="py-2 text-center sm:py-3">
                         <div className="flex flex-col items-center gap-1">
-                          <ActivityRings log={log} size={52} />
-                          <span className={`text-xs tabular-nums font-semibold ${pts !== null ? 'text-slate-700' : 'text-slate-300'}`}>
+                          <ActivityRings log={log} size={40} />
+                          <span className={`text-[10px] tabular-nums font-semibold sm:text-xs ${pts !== null ? 'text-slate-700' : 'text-slate-300'}`}>
                             {pts !== null ? `${pts} pt` : '—'}
                           </span>
                         </div>
