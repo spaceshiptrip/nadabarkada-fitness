@@ -108,7 +108,7 @@ export default function App() {
       )}
 
       <div className="grid gap-6 xl:grid-cols-[1.1fr,0.9fr]">
-        <div className="flex flex-col gap-6">
+        <div className="flex min-w-0 flex-col gap-6">
           <DailyLogForm participants={participants} onSubmit={handleLogEntry} loading={submittingLog} />
           <ChallengeOverview />
           <WeekRingsCalendar logs={dailyLogs} participants={participants} />

@@ -96,7 +96,7 @@ export default function DailyLogForm({ participants, onSubmit, loading }) {
               <Label htmlFor="log-name">Participant</Label>
               <select
                 id="log-name"
-                className="h-10 rounded-xl border bg-white px-3 text-sm"
+                className="h-10 w-full rounded-xl border bg-white px-3 text-sm"
                 value={form.name}
                 onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))}
               >
