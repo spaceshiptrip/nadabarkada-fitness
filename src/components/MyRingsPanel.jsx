@@ -158,8 +158,8 @@ export default function MyRingsPanel({ participants, logs, selectedParticipantNa
               <span className="inline-flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: RING_EXERCISE }} /> Active mins</span>
               <span className="inline-flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: RING_STAND }} /> Steps</span>
               <div className="basis-full h-0 overflow-hidden" aria-hidden="true" />
-              <span className="inline-flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-full bg-orange-400" /> Workout bonus</span>
-              <span className="inline-flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-full bg-cyan-400" /> Mobility bonus</span>
+              <span className="inline-flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-full bg-orange-400" /> Workout bonus (+2)</span>
+              <span className="inline-flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-full bg-cyan-400" /> Mobility bonus (+1)</span>
               <div className="basis-full h-0 overflow-hidden" aria-hidden="true" />
               <span className="inline-flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-full bg-amber-400" /> Consistency bonus</span>
               <span className="inline-flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-full bg-emerald-500" /> Improvement bonus</span>
@@ -196,6 +196,10 @@ export default function MyRingsPanel({ participants, logs, selectedParticipantNa
                 activeProgress={summary.activeProgress}
                 stepsProgress={summary.stepsProgress}
               />
+              <div className="mt-3 flex items-center justify-center gap-2">
+                <LedDot active={summary.workoutBonus} colorClass="bg-orange-400" />
+                <LedDot active={summary.mobilityBonus} colorClass="bg-cyan-400" />
+              </div>
               <div className="mt-4 text-center">
                 <div className="text-xs font-semibold uppercase tracking-widest text-slate-500">
                   {summary.periodLabel}
@@ -209,17 +213,6 @@ export default function MyRingsPanel({ participants, logs, selectedParticipantNa
                 <MetricCard label="Points" value={summary.pointsText} color={RING_MOVE} />
                 <MetricCard label="Active mins" value={summary.activeText} color={RING_EXERCISE} />
                 <MetricCard label="Steps" value={summary.stepsText} color={RING_STAND} />
-              </div>
-
-              <div className="space-y-3 rounded-2xl border bg-slate-50 p-4">
-                <div className="text-sm font-semibold text-slate-800">Bonus LEDs</div>
-                <div className="flex flex-wrap gap-2">
-                  <BonusLed active={summary.workoutBonus} colorClass="bg-orange-400" label="Workout" />
-                  <BonusLed active={summary.mobilityBonus} colorClass="bg-cyan-400" label="Mobility" />
-                  <BonusLed active={summary.consistencyBonus} colorClass="bg-amber-400" label="Consistency" />
-                  <BonusLed active={summary.improvementBonus} colorClass="bg-emerald-500" label="Improvement" />
-                  <BonusLed active={summary.personalBestBonus} colorClass="bg-violet-500" label="Personal best" />
-                </div>
               </div>
             </div>
           </div>
@@ -391,6 +384,15 @@ function MetricCard({ label, value, color }) {
       </div>
       <div className="mt-2 text-lg font-semibold text-slate-800">{value}</div>
     </div>
+  );
+}
+
+function LedDot({ active, colorClass }) {
+  return (
+    <span
+      className={`h-3 w-3 rounded-full border ${active ? `${colorClass} border-transparent` : 'border-slate-300 bg-white'}`}
+      aria-hidden="true"
+    />
   );
 }
 

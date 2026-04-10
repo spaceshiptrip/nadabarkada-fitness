@@ -82,7 +82,7 @@ function getPointsValue(log) {
 export default function WeekRingsCalendar({
   logs,
   participants,
-  title = 'Leaderboard Rings',
+  title = 'Weekly Leaderboard Rings',
   description = 'Selected week ranked by points, with daily rings for each participant.',
 }) {
   const weeks = getWeeklyDateRanges();
@@ -108,6 +108,8 @@ export default function WeekRingsCalendar({
       if (b.weeklyTotal !== a.weeklyTotal) return b.weeklyTotal - a.weeklyTotal;
       return a.name.localeCompare(b.name);
     });
+  const topParticipant = rankedParticipants[0] || null;
+  const weekEnded = new Date(`${week.end}T23:59:59`) < new Date();
 
   function getLog(name, date) {
     return logs.find((l) => l.name === name && l.date === date) || null;
@@ -120,6 +122,12 @@ export default function WeekRingsCalendar({
         <CardDescription>
           {description}{' '}
         </CardDescription>
+        {topParticipant && (
+          <div className="mt-2 rounded-2xl border bg-slate-50 px-3 py-2 text-sm text-slate-700">
+            <span className="font-semibold">{weekEnded ? 'Week winner:' : 'Currently leading:'}</span>{' '}
+            {topParticipant.name} with {topParticipant.weeklyTotal} pts
+          </div>
+        )}
       </CardHeader>
       <CardContent>
         {/* Week tabs */}

@@ -185,7 +185,7 @@ export default function App() {
               <WeekRingsCalendar
                 logs={dailyLogs}
                 participants={derivedParticipants}
-                title="Leaderboard Rings"
+                title="Weekly Leaderboard Rings"
               />
             </div>
             <div className="min-w-0">
