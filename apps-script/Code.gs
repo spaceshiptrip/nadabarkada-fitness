@@ -68,7 +68,7 @@ function addParticipant_(payload) {
     payload.teamName || '',
     number_(payload.baselineActiveMinutes),
     number_(payload.baselineSteps),
-    payload.active !== false,
+    normalizeActiveFlag_(payload.active),
     new Date(),
     payload.profileImage || '',
     toBool_(payload.baselineOverride),
@@ -142,7 +142,9 @@ function addDailyLog_(payload) {
 }
 
 function getParticipants_() {
-  return getParticipantsRaw_().map(function(participant) {
+  return getParticipantsRaw_()
+    .filter(function(participant) { return participant.active === 1; })
+    .map(function(participant) {
     return {
       id: participant.id,
       name: participant.name,
@@ -155,7 +157,7 @@ function getParticipants_() {
       phoneNumber: participant.phoneNumber || '',
       active: participant.active,
     };
-  });
+    });
 }
 
 function getDailyLogs_() {
@@ -425,7 +427,7 @@ function getParticipantsRaw_() {
         baselineOverride: toBool_(row.BaselineOverride),
         phoneNumber: row.PhoneNumber || '',
         pin: row.Pin || '',
-        active: String(row.Active).toLowerCase() !== 'false',
+        active: normalizeActiveFlag_(row.Active),
       };
     });
 }
@@ -499,6 +501,17 @@ function ensureHeaders_(sheet, headers) {
 
 function createUserId_() {
   return Utilities.getUuid();
+}
+
+function normalizeActiveFlag_(value) {
+  if (value === 0 || value === '0') return 0;
+  if (value === 1 || value === '1') return 1;
+
+  var normalized = String(value || '').trim().toLowerCase();
+  if (normalized === 'false' || normalized === 'no' || normalized === 'inactive') return 0;
+  if (normalized === 'true' || normalized === 'yes' || normalized === 'active') return 1;
+
+  return 1;
 }
 
 function normalizeName_(value) {
