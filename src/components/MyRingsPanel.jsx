@@ -218,6 +218,14 @@ export default function MyRingsPanel({ participants, logs, selectedParticipantId
                 <MetricCard label="Active mins" value={summary.activeText} color={RING_EXERCISE} />
                 <MetricCard label="Steps" value={summary.stepsText} color={RING_STAND} />
               </div>
+              {summary.notes && (
+                <div className="rounded-2xl border bg-white p-3">
+                  <div className="text-xs font-semibold uppercase tracking-widest text-slate-500">
+                    Notes
+                  </div>
+                  <div className="mt-2 text-sm leading-6 text-slate-700">{summary.notes}</div>
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -460,6 +468,7 @@ function buildSummary(participant, logs, view) {
       stepsProgress: Number(log?.steps || 0) / 10000,
       workoutBonus: Boolean(log?.workoutDone),
       mobilityBonus: Boolean(log?.mobilityDone),
+      notes: String(log?.notes || '').trim(),
       consistencyBonus: false,
       improvementBonus: false,
       personalBestBonus: false,
@@ -563,6 +572,7 @@ function buildEmptySummary() {
     stepsProgress: 0,
     workoutBonus: false,
     mobilityBonus: false,
+    notes: '',
     consistencyBonus: false,
     improvementBonus: false,
     personalBestBonus: false,
