@@ -118,9 +118,6 @@ export default function WeekRingsCalendar({
         <CardTitle>{title}</CardTitle>
         <CardDescription>
           {description}{' '}
-          <span style={{ color: RING_MOVE }}>&#9679;</span> Points{' '}
-          <span style={{ color: RING_EXERCISE }}>&#9679;</span> Active min{' '}
-          <span style={{ color: RING_STAND }}>&#9679;</span> Steps
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -141,11 +138,12 @@ export default function WeekRingsCalendar({
           ))}
         </div>
 
-        <div className="mb-4 flex flex-wrap items-center gap-3 rounded-2xl border bg-slate-50 px-3 py-2 text-[11px] text-slate-600 sm:text-xs">
-          <span className="font-semibold text-slate-700">Legend</span>
+        <div className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-0.5 rounded-2xl border bg-slate-50 px-3 py-2 text-[11px] text-slate-600 sm:text-xs">
+          <span className="basis-full font-semibold text-slate-700">Legend</span>
           <span className="inline-flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: RING_MOVE }} /> Points</span>
           <span className="inline-flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: RING_EXERCISE }} /> Active mins</span>
           <span className="inline-flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: RING_STAND }} /> Steps</span>
+          <div className="basis-full h-0 overflow-hidden" aria-hidden="true" />
           <span className="inline-flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-full bg-amber-400" /> Consistency bonus</span>
           <span className="inline-flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-full bg-emerald-500" /> Improvement bonus</span>
           <span className="inline-flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-full bg-violet-500" /> Personal best</span>
