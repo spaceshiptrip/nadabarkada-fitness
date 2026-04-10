@@ -87,6 +87,7 @@ export default function WeekRingsCalendar({
 }) {
   const weeks = getWeeklyDateRanges();
   const [selectedWeek, setSelectedWeek] = useState(0);
+  const [showLegend, setShowLegend] = useState(false);
 
   const week = weeks[selectedWeek];
   const days = Array.from({ length: 7 }, (_, i) => addDays(week.start, i));
@@ -138,15 +139,33 @@ export default function WeekRingsCalendar({
           ))}
         </div>
 
-        <div className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-0.5 rounded-2xl border bg-slate-50 px-3 py-2 text-[11px] text-slate-600 sm:text-xs">
-          <span className="basis-full font-semibold text-slate-700">Legend</span>
-          <span className="inline-flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: RING_MOVE }} /> Points</span>
-          <span className="inline-flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: RING_EXERCISE }} /> Active mins</span>
-          <span className="inline-flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: RING_STAND }} /> Steps</span>
-          <div className="basis-full h-0 overflow-hidden" aria-hidden="true" />
-          <span className="inline-flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-full bg-amber-400" /> Consistency bonus</span>
-          <span className="inline-flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-full bg-emerald-500" /> Improvement bonus</span>
-          <span className="inline-flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-full bg-violet-500" /> Personal best</span>
+        <div className="mb-4 rounded-2xl border bg-slate-50 px-3 py-2 text-[11px] text-slate-600 sm:text-xs">
+          <button
+            type="button"
+            onClick={() => setShowLegend((current) => !current)}
+            className="flex w-full items-center justify-between gap-3 text-left"
+            aria-expanded={showLegend}
+          >
+            <span className="font-semibold text-slate-700">Legend</span>
+            <span className="text-[10px] font-medium uppercase tracking-wide text-slate-500 sm:text-[11px]">
+              {showLegend ? 'Hide' : 'Show'}
+            </span>
+          </button>
+
+          {showLegend && (
+            <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-0.5">
+              <span className="inline-flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: RING_MOVE }} /> Points</span>
+              <span className="inline-flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: RING_EXERCISE }} /> Active mins</span>
+              <span className="inline-flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: RING_STAND }} /> Steps</span>
+              <div className="basis-full h-0 overflow-hidden" aria-hidden="true" />
+              <span className="inline-flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-full bg-orange-400" /> Workout bonus</span>
+              <span className="inline-flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-full bg-cyan-400" /> Mobility bonus</span>
+              <div className="basis-full h-0 overflow-hidden" aria-hidden="true" />
+              <span className="inline-flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-full bg-amber-400" /> Consistency bonus</span>
+              <span className="inline-flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-full bg-emerald-500" /> Improvement bonus</span>
+              <span className="inline-flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-full bg-violet-500" /> Personal best</span>
+            </div>
+          )}
         </div>
 
         {/* Calendar grid */}
@@ -195,6 +214,10 @@ export default function WeekRingsCalendar({
                       <td key={date} className="py-2 text-center sm:py-3">
                         <div className="flex flex-col items-center gap-1">
                           <ActivityRings log={log} size={34} />
+                          <div className="flex items-center justify-center gap-1">
+                            <BonusLed active={Boolean(log?.workoutDone)} colorClass="bg-orange-400" />
+                            <BonusLed active={Boolean(log?.mobilityDone)} colorClass="bg-cyan-400" />
+                          </div>
                           <span className={`text-[10px] tabular-nums font-semibold sm:text-xs ${pts !== null ? 'text-slate-700' : 'text-slate-300'}`}>
                             {pts !== null ? `${pts} pt` : '—'}
                           </span>
