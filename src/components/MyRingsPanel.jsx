@@ -14,6 +14,7 @@ import { getParticipantProfileImage } from '@/lib/participants';
 const RING_MOVE = '#FA3E57';
 const RING_EXERCISE = '#92E82C';
 const RING_STAND = '#1EEAEF';
+const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
 function SummaryRings({ pointsProgress, activeProgress, stepsProgress, size = 144 }) {
   const cx = size / 2;
@@ -60,6 +61,49 @@ function BonusLed({ active, colorClass, label }) {
       />
       <span>{label}</span>
     </div>
+  );
+}
+
+function DayRings({ log, size = 34 }) {
+  const cx = size / 2;
+  const cy = size / 2;
+  const sw = size < 44 ? 4 : 5;
+  const gap = 1;
+  const hasData = !!log;
+  const points = hasData ? Number(log.dailyPoints ?? calculateDailyPoints(log)) : 0;
+  const activeMin = hasData ? Number(log.activeMinutes || 0) : 0;
+  const steps = hasData ? Number(log.steps || 0) : 0;
+
+  const rings = [
+    { r: cx - sw / 2, color: RING_MOVE, progress: Math.min(points / 10, 1) },
+    { r: cx - sw / 2 - sw - gap, color: RING_EXERCISE, progress: Math.min(activeMin / 60, 1) },
+    { r: cx - sw / 2 - (sw + gap) * 2, color: RING_STAND, progress: Math.min(steps / 10000, 1) },
+  ];
+
+  return (
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ transform: 'rotate(-90deg)' }}>
+      {rings.map(({ r, color, progress }) => {
+        const circumference = 2 * Math.PI * r;
+        return (
+          <g key={r}>
+            <circle cx={cx} cy={cy} r={r} fill="none" stroke={color} strokeWidth={sw} opacity={0.15} />
+            {hasData && (
+              <circle
+                cx={cx}
+                cy={cy}
+                r={r}
+                fill="none"
+                stroke={color}
+                strokeWidth={sw}
+                strokeDasharray={circumference}
+                strokeDashoffset={circumference * (1 - progress)}
+                strokeLinecap="round"
+              />
+            )}
+          </g>
+        );
+      })}
+    </svg>
   );
 }
 
@@ -111,42 +155,109 @@ export default function MyRingsPanel({ participants, logs, selectedParticipantNa
           ))}
         </div>
 
-        <div className="grid flex-1 gap-6 lg:grid-cols-[0.95fr,1.05fr]">
-          <div className="flex flex-col items-center justify-center rounded-2xl border bg-slate-50 p-4">
-            <SummaryRings
-              pointsProgress={summary.pointsProgress}
-              activeProgress={summary.activeProgress}
-              stepsProgress={summary.stepsProgress}
-            />
-            <div className="mt-4 text-center">
-              <div className="text-xs font-semibold uppercase tracking-widest text-slate-500">
-                {summary.periodLabel}
-              </div>
-              <div className="mt-1 text-2xl font-bold text-slate-800">{summary.totalPoints} pts</div>
-            </div>
-          </div>
-
-          <div className="space-y-4">
-            <div className="grid gap-3 sm:grid-cols-3">
-              <MetricCard label="Points" value={summary.pointsText} color={RING_MOVE} />
-              <MetricCard label="Active mins" value={summary.activeText} color={RING_EXERCISE} />
-              <MetricCard label="Steps" value={summary.stepsText} color={RING_STAND} />
-            </div>
-
-            <div className="space-y-3 rounded-2xl border bg-slate-50 p-4">
-              <div className="text-sm font-semibold text-slate-800">Bonus LEDs</div>
-              <div className="flex flex-wrap gap-2">
-                <BonusLed active={summary.workoutBonus} colorClass="bg-orange-400" label="Workout" />
-                <BonusLed active={summary.mobilityBonus} colorClass="bg-cyan-400" label="Mobility" />
-                <BonusLed active={summary.consistencyBonus} colorClass="bg-amber-400" label="Consistency" />
-                <BonusLed active={summary.improvementBonus} colorClass="bg-emerald-500" label="Improvement" />
-                <BonusLed active={summary.personalBestBonus} colorClass="bg-violet-500" label="Personal best" />
+        {view === 'week' ? (
+          <WeekDetail summary={summary} />
+        ) : (
+          <div className="grid flex-1 gap-6 lg:grid-cols-[0.95fr,1.05fr]">
+            <div className="flex flex-col items-center justify-center rounded-2xl border bg-slate-50 p-4">
+              <SummaryRings
+                pointsProgress={summary.pointsProgress}
+                activeProgress={summary.activeProgress}
+                stepsProgress={summary.stepsProgress}
+              />
+              <div className="mt-4 text-center">
+                <div className="text-xs font-semibold uppercase tracking-widest text-slate-500">
+                  {summary.periodLabel}
+                </div>
+                <div className="mt-1 text-2xl font-bold text-slate-800">{summary.totalPoints} pts</div>
               </div>
             </div>
+
+            <div className="space-y-4">
+              <div className="grid gap-3 sm:grid-cols-3">
+                <MetricCard label="Points" value={summary.pointsText} color={RING_MOVE} />
+                <MetricCard label="Active mins" value={summary.activeText} color={RING_EXERCISE} />
+                <MetricCard label="Steps" value={summary.stepsText} color={RING_STAND} />
+              </div>
+
+              <div className="space-y-3 rounded-2xl border bg-slate-50 p-4">
+                <div className="text-sm font-semibold text-slate-800">Bonus LEDs</div>
+                <div className="flex flex-wrap gap-2">
+                  <BonusLed active={summary.workoutBonus} colorClass="bg-orange-400" label="Workout" />
+                  <BonusLed active={summary.mobilityBonus} colorClass="bg-cyan-400" label="Mobility" />
+                  <BonusLed active={summary.consistencyBonus} colorClass="bg-amber-400" label="Consistency" />
+                  <BonusLed active={summary.improvementBonus} colorClass="bg-emerald-500" label="Improvement" />
+                  <BonusLed active={summary.personalBestBonus} colorClass="bg-violet-500" label="Personal best" />
+                </div>
+              </div>
+            </div>
           </div>
-        </div>
+        )}
       </CardContent>
     </Card>
+  );
+}
+
+function WeekDetail({ summary }) {
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between rounded-2xl border bg-slate-50 px-4 py-3">
+        <div>
+          <div className="text-xs font-semibold uppercase tracking-widest text-slate-500">
+            {summary.periodLabel}
+          </div>
+          <div className="mt-1 text-xl font-bold text-slate-800">{summary.totalPoints} pts</div>
+        </div>
+        <div className="flex flex-wrap justify-end gap-2">
+          <BonusLed active={summary.consistencyBonus} colorClass="bg-amber-400" label="Consistency" />
+          <BonusLed active={summary.improvementBonus} colorClass="bg-emerald-500" label="Improvement" />
+          <BonusLed active={summary.personalBestBonus} colorClass="bg-violet-500" label="Personal best" />
+        </div>
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-3">
+        <MetricCard label="Points" value={summary.pointsText} color={RING_MOVE} />
+        <MetricCard label="Active mins" value={summary.activeText} color={RING_EXERCISE} />
+        <MetricCard label="Steps" value={summary.stepsText} color={RING_STAND} />
+      </div>
+
+      <div className="overflow-x-auto rounded-2xl border">
+        <table className="w-full table-fixed bg-white">
+          <thead>
+            <tr>
+              {summary.days.map((day, index) => (
+                <th key={day.date} className="px-1 pb-2 pt-3 text-center">
+                  <div className="text-[10px] font-semibold text-slate-700 sm:text-xs">{DAY_LABELS[index]}</div>
+                  <div className="text-[10px] text-muted-foreground sm:text-xs">{day.shortDate}</div>
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            <tr className="border-t">
+              {summary.days.map((day) => (
+                <td key={day.date} className="px-1 py-3 text-center align-top">
+                  <div className="flex flex-col items-center gap-1">
+                    <DayRings log={day.log} size={34} />
+                    <div className="flex items-center justify-center gap-1">
+                      <span
+                        className={`h-2.5 w-2.5 rounded-full border ${day.workoutBonus ? 'border-transparent bg-orange-400' : 'border-slate-300 bg-white'}`}
+                      />
+                      <span
+                        className={`h-2.5 w-2.5 rounded-full border ${day.mobilityBonus ? 'border-transparent bg-cyan-400' : 'border-slate-300 bg-white'}`}
+                      />
+                    </div>
+                    <span className={`text-[10px] font-semibold sm:text-xs ${day.points > 0 ? 'text-slate-700' : 'text-slate-300'}`}>
+                      {day.log ? `${day.points} pt` : '—'}
+                    </span>
+                  </div>
+                </td>
+              ))}
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
   );
 }
 
@@ -193,6 +304,21 @@ function buildSummary(participant, logs, view) {
   }
 
   if (view === 'week') {
+    const currentWeekRange = getWeeklyDateRanges()[Math.max(currentWeek, 0)];
+    const days = currentWeekRange
+      ? Array.from({ length: 7 }, (_, index) => {
+          const date = addDays(currentWeekRange.start, index);
+          const log = participantLogs.find((entry) => entry.date === date) || null;
+          return {
+            date,
+            shortDate: shortDate(date),
+            log,
+            points: log ? Number(log.dailyPoints ?? calculateDailyPoints(log)) : 0,
+            workoutBonus: Boolean(log?.workoutDone),
+            mobilityBonus: Boolean(log?.mobilityDone),
+          };
+        })
+      : [];
     const weekLogs = participantLogs.filter((entry) => Number(entry.challengeWeek) === currentWeek);
     const standing = getWeeklyStanding(participant, logs, currentWeek);
     const avgActiveMinutes = weekLogs.length
@@ -216,6 +342,7 @@ function buildSummary(participant, logs, view) {
       consistencyBonus: standing.consistencyBonus > 0,
       improvementBonus: standing.improvementBonus > 0,
       personalBestBonus: standing.personalBestBonus > 0,
+      days,
     };
   }
 
@@ -267,6 +394,7 @@ function buildEmptySummary() {
     consistencyBonus: false,
     improvementBonus: false,
     personalBestBonus: false,
+    days: [],
   };
 }
 
@@ -342,4 +470,15 @@ function getWeeklyLabel(week) {
   const ranges = getWeeklyDateRanges();
   const range = ranges.find((item, index) => index === week);
   return range ? range.label : 'Current week';
+}
+
+function addDays(dateStr, amount) {
+  const date = new Date(`${dateStr}T12:00:00`);
+  date.setDate(date.getDate() + amount);
+  return date.toISOString().slice(0, 10);
+}
+
+function shortDate(dateStr) {
+  const date = new Date(`${dateStr}T12:00:00`);
+  return `${date.getMonth() + 1}/${date.getDate()}`;
 }
