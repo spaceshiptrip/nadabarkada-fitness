@@ -9,12 +9,12 @@ Create a Google Sheet and add two tabs:
 
 ### Participants
 ```text
-Name | DeviceType | TeamName | BaselineActiveMinutes | BaselineSteps | Active | CreatedAt | ProfileImage | BaselineOverride
+UserId | Name | DeviceType | TeamName | BaselineActiveMinutes | BaselineSteps | Active | CreatedAt | ProfileImage | BaselineOverride | PhoneNumber | Pin
 ```
 
 ### DailyLogs
 ```text
-Date | Name | ActiveMinutes | WorkoutDone | Steps | MobilityDone | Notes | DailyPoints | ChallengeWeek | CreatedAt
+Date | ParticipantId | Name | ActiveMinutes | WorkoutDone | Steps | MobilityDone | Notes | DailyPoints | ChallengeWeek | CreatedAt
 ```
 
 ## 3) Paste backend code

@@ -75,7 +75,7 @@ export default function DailyLogForm({
     { label: 'Activity', value: breakdown.activity, max: 5 },
     { label: 'Workout bonus', value: breakdown.workout, max: 2 },
     { label: 'Steps', value: breakdown.steps, max: 3 },
-    { label: 'Mobility bonus', value: breakdown.mobility, max: 1 },
+    { label: 'Self-Care bonus', value: breakdown.mobility, max: 1 },
   ];
 
   return (
@@ -176,7 +176,7 @@ export default function DailyLogForm({
                 checked={form.mobilityDone}
                 onChange={(e) => setForm((prev) => ({ ...prev, mobilityDone: e.target.checked }))}
               />
-              Mobility / recovery (5+ min)
+              Self-Care (5+ min)
             </label>
           </div>
 

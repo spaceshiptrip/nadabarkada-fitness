@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import Header from '@/components/Header';
-import ChallengeOverview from '@/components/ChallengeOverview';
 import RulesCard from '@/components/RulesCard';
 import ParticipantManager from '@/components/ParticipantManager';
 import DailyLogForm from '@/components/DailyLogForm';
@@ -115,9 +114,9 @@ export default function App() {
       <div className="mb-6 rounded-2xl border bg-white p-4 shadow-soft">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <div className="text-sm font-semibold text-slate-800">Rules at a glance</div>
+            <div className="text-sm font-semibold text-slate-800">Rules and Timeline</div>
             <div className="text-sm text-muted-foreground">
-              Toggle the rules panel without losing the desktop side placement.
+              Toggle the rules and challenge timeline panel.
             </div>
           </div>
           <Button
@@ -132,14 +131,10 @@ export default function App() {
       </div>
 
       {showRules && (
-        <div className="mb-6 xl:hidden">
+        <div className="mb-6">
           <RulesCard />
         </div>
       )}
-
-      <div className="mb-6">
-        <ChallengeOverview />
-      </div>
 
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
@@ -159,51 +154,43 @@ export default function App() {
         </div>
       )}
 
-      <div className={`mb-8 grid gap-6 ${showRules ? 'xl:grid-cols-[1.15fr,0.85fr]' : ''}`}>
-        <div className="min-w-0 space-y-8">
-          <div className="grid gap-6 xl:grid-cols-2">
-            <div className="min-w-0">
-              <DailyLogForm
-                participants={derivedParticipants}
-                onSubmit={handleLogEntry}
-                loading={submittingLog}
-                selectedParticipantName={selectedParticipantName}
-                onSelectedParticipantChange={setSelectedParticipantName}
-              />
-            </div>
-            <div className="min-w-0">
-              <MyRingsPanel
-                participants={derivedParticipants}
-                logs={dailyLogs}
-                selectedParticipantName={selectedParticipantName}
-              />
-            </div>
+      <div className="mb-8 space-y-8">
+        <div className="grid gap-6 xl:grid-cols-2">
+          <div className="min-w-0">
+            <DailyLogForm
+              participants={derivedParticipants}
+              onSubmit={handleLogEntry}
+              loading={submittingLog}
+              selectedParticipantName={selectedParticipantName}
+              onSelectedParticipantChange={setSelectedParticipantName}
+            />
           </div>
-
-          <div className="grid gap-6 xl:grid-cols-2">
-            <div className="min-w-0">
-              <WeekRingsCalendar
-                logs={dailyLogs}
-                participants={derivedParticipants}
-                title="Weekly Leaderboard Rings"
-              />
-            </div>
-            <div className="min-w-0">
-              <LeaderboardTable
-                rows={leaderboard}
-                source={leaderboardSource}
-                title="Challenge leaderboard"
-                description="Ranked by total challenge points."
-              />
-            </div>
+          <div className="min-w-0">
+            <MyRingsPanel
+              participants={derivedParticipants}
+              logs={dailyLogs}
+              selectedParticipantName={selectedParticipantName}
+            />
           </div>
         </div>
 
-        {showRules && (
-          <div className="hidden xl:block">
-            <RulesCard />
+        <div className="grid gap-6 xl:grid-cols-2">
+          <div className="min-w-0">
+            <WeekRingsCalendar
+              logs={dailyLogs}
+              participants={derivedParticipants}
+              title="Weekly Leaderboard Rings"
+            />
           </div>
-        )}
+          <div className="min-w-0">
+            <LeaderboardTable
+              rows={leaderboard}
+              source={leaderboardSource}
+              title="Challenge leaderboard"
+              description="Ranked by total challenge points."
+            />
+          </div>
+        </div>
       </div>
 
       <div className="mb-4">

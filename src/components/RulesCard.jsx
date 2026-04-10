@@ -1,5 +1,6 @@
 import { Flame, CalendarDays, Users } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { getWeeklyDateRanges } from '@/lib/points';
 
 function SectionHeading({ icon: Icon, label, aside }) {
   return (
@@ -32,6 +33,9 @@ function RuleGroup({ label, rows }) {
 }
 
 export default function RulesCard() {
+  const ranges = getWeeklyDateRanges();
+  const today = new Date().toISOString().slice(0, 10);
+
   return (
     <Card className="h-full">
       <CardHeader>
@@ -41,6 +45,46 @@ export default function RulesCard() {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
+        <div className="space-y-3">
+          <SectionHeading icon={CalendarDays} label="Challenge timeline" />
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            {ranges.map((range, i) => {
+              const isCurrent = today >= range.start && today <= range.end;
+              const isPast = today > range.end;
+              const isBaseline = i === 0;
+
+              let cardClass = 'rounded-2xl border p-4 ';
+              if (isCurrent) cardClass += 'border-primary/40 bg-primary/5';
+              else if (isBaseline) cardClass += 'border-amber-200 bg-amber-50';
+              else if (isPast) cardClass += 'bg-slate-50 opacity-60';
+              else cardClass += 'bg-slate-50';
+
+              return (
+                <div key={range.label} className={cardClass}>
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="text-sm font-semibold">{range.label}</div>
+                    {isCurrent && (
+                      <span className="shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">
+                        Now
+                      </span>
+                    )}
+                    {isBaseline && !isCurrent && (
+                      <span className="shrink-0 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">
+                        Baseline
+                      </span>
+                    )}
+                  </div>
+                  <div className="mt-1 text-xs text-muted-foreground">
+                    {range.start} – {range.end}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="border-t" />
 
         <div className="space-y-3">
           <SectionHeading
@@ -66,7 +110,7 @@ export default function RulesCard() {
 
             <RuleGroup label="Bonuses" rows={[
               ['Workout session (20+ min)', '+2 pts'],
-              ['Mobility / recovery (5+ min)', '+1 pt'],
+              ['Self-Care (5+ min)', '+1 pt'],
             ]} />
           </div>
         </div>

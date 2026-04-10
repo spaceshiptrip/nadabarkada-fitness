@@ -1,10 +1,12 @@
 const SPREADSHEET_ID = 'REPLACE_WITH_YOUR_SPREADSHEET_ID';
 const PARTICIPANTS_SHEET = 'Participants';
 const DAILY_LOGS_SHEET = 'DailyLogs';
+const PARTICIPANT_HEADERS = ['UserId', 'Name', 'DeviceType', 'TeamName', 'BaselineActiveMinutes', 'BaselineSteps', 'Active', 'CreatedAt', 'ProfileImage', 'BaselineOverride', 'PhoneNumber', 'Pin'];
+const DAILY_LOG_HEADERS = ['Date', 'ParticipantId', 'Name', 'ActiveMinutes', 'WorkoutDone', 'Steps', 'MobilityDone', 'Notes', 'DailyPoints', 'ChallengeWeek', 'CreatedAt'];
 
 const BASELINE_START = new Date('2026-04-27T00:00:00');
 const WEEK1_START = new Date('2026-05-04T00:00:00');
-const CHALLENGE_END = new Date('2026-06-04T23:59:59');
+const CHALLENGE_END = new Date('2026-06-07T23:59:59');
 
 function doGet(e) {
   const action = (e && e.parameter && e.parameter.action) || '';
@@ -48,9 +50,19 @@ function doPost(e) {
 
 function addParticipant_(payload) {
   const sheet = getSheet_(PARTICIPANTS_SHEET);
-  ensureHeaders_(sheet, ['Name', 'DeviceType', 'TeamName', 'BaselineActiveMinutes', 'BaselineSteps', 'Active', 'CreatedAt', 'ProfileImage', 'BaselineOverride']);
+  ensureHeaders_(sheet, PARTICIPANT_HEADERS);
+  const participants = getParticipantsRaw_();
+  const normalizedName = normalizeName_(payload.name);
+
+  if (!normalizedName) throw new Error('Participant name is required.');
+  if (participants.some(function(participant) { return normalizeName_(participant.name) === normalizedName; })) {
+    throw new Error('A participant with that name already exists. Frontend support for duplicate names needs participant IDs first.');
+  }
+
+  const userId = createUserId_();
 
   const row = [
+    userId,
     payload.name || '',
     payload.deviceType || '',
     payload.teamName || '',
@@ -60,11 +72,14 @@ function addParticipant_(payload) {
     new Date(),
     payload.profileImage || '',
     toBool_(payload.baselineOverride),
+    payload.phoneNumber || '',
+    payload.pin || '',
   ];
 
   sheet.appendRow(row);
 
   return {
+    id: userId,
     name: payload.name || '',
     deviceType: payload.deviceType || '',
     teamName: payload.teamName || '',
@@ -72,17 +87,20 @@ function addParticipant_(payload) {
     baselineSteps: number_(payload.baselineSteps),
     profileImage: payload.profileImage || '',
     baselineOverride: toBool_(payload.baselineOverride),
+    phoneNumber: payload.phoneNumber || '',
     active: payload.active !== false,
   };
 }
 
 function addDailyLog_(payload) {
   const sheet = getSheet_(DAILY_LOGS_SHEET);
-  ensureHeaders_(sheet, ['Date', 'Name', 'ActiveMinutes', 'WorkoutDone', 'Steps', 'MobilityDone', 'Notes', 'DailyPoints', 'ChallengeWeek', 'CreatedAt']);
+  ensureHeaders_(sheet, DAILY_LOG_HEADERS);
+  const participant = resolveParticipant_(payload);
 
   const entry = {
     date: payload.date || '',
-    name: payload.name || '',
+    participantId: participant.id,
+    name: participant.name,
     activeMinutes: number_(payload.activeMinutes),
     workoutDone: toBool_(payload.workoutDone),
     steps: number_(payload.steps),
@@ -95,6 +113,7 @@ function addDailyLog_(payload) {
 
   const row = [
     entry.date,
+    entry.participantId,
     entry.name,
     entry.activeMinutes,
     entry.workoutDone,
@@ -106,10 +125,11 @@ function addDailyLog_(payload) {
     new Date(),
   ];
 
-  sheet.appendRow(row);
+  upsertDailyLogRow_(sheet, entry.participantId, entry.date, row);
 
   return {
     date: entry.date,
+    participantId: entry.participantId,
     name: entry.name,
     activeMinutes: entry.activeMinutes,
     workoutDone: entry.workoutDone,
@@ -122,33 +142,32 @@ function addDailyLog_(payload) {
 }
 
 function getParticipants_() {
-  const sheet = getSheet_(PARTICIPANTS_SHEET);
-  ensureHeaders_(sheet, ['Name', 'DeviceType', 'TeamName', 'BaselineActiveMinutes', 'BaselineSteps', 'Active', 'CreatedAt', 'ProfileImage', 'BaselineOverride']);
-  const rows = getObjects_(sheet);
-  return rows
-    .filter(function(row) { return String(row.Name || '').trim() !== ''; })
-    .map(function(row) {
-      return {
-        name: row.Name,
-        deviceType: row.DeviceType,
-        teamName: row.TeamName,
-        baselineActiveMinutes: number_(row.BaselineActiveMinutes),
-        baselineSteps: number_(row.BaselineSteps),
-        profileImage: row.ProfileImage || '',
-        baselineOverride: toBool_(row.BaselineOverride),
-        active: String(row.Active).toLowerCase() !== 'false',
-      };
-    });
+  return getParticipantsRaw_().map(function(participant) {
+    return {
+      id: participant.id,
+      name: participant.name,
+      deviceType: participant.deviceType,
+      teamName: participant.teamName,
+      baselineActiveMinutes: participant.baselineActiveMinutes,
+      baselineSteps: participant.baselineSteps,
+      profileImage: participant.profileImage || '',
+      baselineOverride: participant.baselineOverride,
+      phoneNumber: participant.phoneNumber || '',
+      active: participant.active,
+    };
+  });
 }
 
 function getDailyLogs_() {
   const sheet = getSheet_(DAILY_LOGS_SHEET);
+  ensureHeaders_(sheet, DAILY_LOG_HEADERS);
   const rows = getObjects_(sheet);
   return rows
     .filter(function(row) { return String(row.Name || '').trim() !== ''; })
     .map(function(row) {
       return {
         date: row.Date,
+        participantId: row.ParticipantId || '',
         name: row.Name,
         activeMinutes: number_(row.ActiveMinutes),
         workoutDone: toBool_(row.WorkoutDone),
@@ -168,7 +187,7 @@ function getLeaderboard_() {
   return participants.map(function(participant) {
     const baseline = getParticipantBaseline_(participant, logs);
     const personLogs = logs.filter(function(log) {
-      return log.name === participant.name && number_(log.challengeWeek) >= 1;
+      return matchesParticipant_(participant, log) && number_(log.challengeWeek) >= 1;
     });
 
     const dailyTotal = sum_(personLogs.map(function(log) { return number_(log.dailyPoints); }));
@@ -195,7 +214,7 @@ function getWeeklySummary_() {
 
   participants.forEach(function(participant) {
     const baseline = getParticipantBaseline_(participant, logs);
-    const personLogs = logs.filter(function(log) { return log.name === participant.name; });
+    const personLogs = logs.filter(function(log) { return matchesParticipant_(participant, log); });
     let priorBest = 0;
 
     [1, 2, 3, 4].forEach(function(week) {
@@ -241,7 +260,7 @@ function getWeeklySummary_() {
 
 function calculateAllWeeklyBonusesForParticipant_(participant, allLogs) {
   const baseline = getParticipantBaseline_(participant, allLogs);
-  const personLogs = allLogs.filter(function(log) { return log.name === participant.name; });
+  const personLogs = allLogs.filter(function(log) { return matchesParticipant_(participant, log); });
   let totalBonuses = 0;
   let priorBest = 0;
 
@@ -280,7 +299,7 @@ function getParticipantBaseline_(participant, logs) {
   }
 
   const baselineLogs = logs.filter(function(log) {
-    return log.name === participant.name && number_(log.challengeWeek) === 0;
+    return matchesParticipant_(participant, log) && number_(log.challengeWeek) === 0;
   });
 
   if (!baselineLogs.length) {
@@ -358,6 +377,7 @@ function getChallengeWeek_(dateString) {
   const diffDays = Math.floor((date.getTime() - BASELINE_START.getTime()) / (24 * 60 * 60 * 1000));
 
   if (diffDays < 0) return -1;
+  if (date.getTime() > CHALLENGE_END.getTime()) return -1;
   if (diffDays <= 6) return 0;
   return Math.min(Math.floor((diffDays - 7) / 7) + 1, 4);
 }
@@ -367,6 +387,83 @@ function getSheet_(name) {
   const sheet = spreadsheet.getSheetByName(name);
   if (!sheet) throw new Error('Missing sheet: ' + name);
   return sheet;
+}
+
+function getParticipantsRaw_() {
+  const sheet = getSheet_(PARTICIPANTS_SHEET);
+  ensureHeaders_(sheet, PARTICIPANT_HEADERS);
+  const rows = getObjects_(sheet);
+
+  return rows
+    .filter(function(row) { return String(row.Name || '').trim() !== ''; })
+    .map(function(row) {
+      return {
+        id: row.UserId || '',
+        name: row.Name,
+        deviceType: row.DeviceType,
+        teamName: row.TeamName,
+        baselineActiveMinutes: number_(row.BaselineActiveMinutes),
+        baselineSteps: number_(row.BaselineSteps),
+        profileImage: row.ProfileImage || '',
+        baselineOverride: toBool_(row.BaselineOverride),
+        phoneNumber: row.PhoneNumber || '',
+        pin: row.Pin || '',
+        active: String(row.Active).toLowerCase() !== 'false',
+      };
+    });
+}
+
+function resolveParticipant_(payload) {
+  const participants = getParticipantsRaw_();
+  const participantId = String(payload.participantId || '').trim();
+  const participantName = normalizeName_(payload.name);
+
+  if (participantId) {
+    const byId = participants.find(function(participant) { return String(participant.id) === participantId; });
+    if (!byId) throw new Error('Participant not found for participantId: ' + participantId);
+    return byId;
+  }
+
+  const byName = participants.filter(function(participant) {
+    return normalizeName_(participant.name) === participantName;
+  });
+
+  if (!participantName) throw new Error('Participant name is required.');
+  if (!byName.length) throw new Error('Participant not found: ' + payload.name);
+  if (byName.length > 1) throw new Error('Multiple participants share that name. Submit participantId instead.');
+
+  return byName[0];
+}
+
+function matchesParticipant_(participant, log) {
+  const participantId = String(participant.id || '').trim();
+  const logParticipantId = String(log.participantId || '').trim();
+  if (participantId && logParticipantId) return participantId === logParticipantId;
+  return normalizeName_(participant.name) === normalizeName_(log.name);
+}
+
+function upsertDailyLogRow_(sheet, participantId, date, rowValues) {
+  const values = sheet.getDataRange().getValues();
+  if (!values || values.length < 2) {
+    sheet.appendRow(rowValues);
+    return;
+  }
+
+  const headers = values[0];
+  const participantIdIndex = headers.indexOf('ParticipantId');
+  const dateIndex = headers.indexOf('Date');
+
+  for (var i = 1; i < values.length; i += 1) {
+    var existingParticipantId = String(values[i][participantIdIndex] || '').trim();
+    var existingDate = String(values[i][dateIndex] || '').trim();
+
+    if (existingParticipantId === String(participantId).trim() && existingDate === String(date).trim()) {
+      sheet.getRange(i + 1, 1, 1, rowValues.length).setValues([rowValues]);
+      return;
+    }
+  }
+
+  sheet.appendRow(rowValues);
 }
 
 function ensureHeaders_(sheet, headers) {
@@ -381,6 +478,14 @@ function ensureHeaders_(sheet, headers) {
       sheet.getRange(1, index + 1).setValue(header);
     }
   });
+}
+
+function createUserId_() {
+  return Utilities.getUuid();
+}
+
+function normalizeName_(value) {
+  return String(value || '').trim().toLowerCase();
 }
 
 function getObjects_(sheet) {
