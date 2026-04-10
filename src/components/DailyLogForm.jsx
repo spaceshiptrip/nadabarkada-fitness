@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { getParticipantProfileImage } from '@/lib/participants';
 
 function todayIso() {
   return new Date().toISOString().slice(0, 10);
@@ -36,6 +37,7 @@ export default function DailyLogForm({
   const [form, setForm] = useState(initialState);
 
   const participantValue = selectedParticipantName ?? form.name;
+  const selectedParticipant = participants.find((participant) => participant.name === participantValue) || null;
 
   const breakdown = useMemo(() => {
     const activity = calculateActivityPoints(Number(form.activeMinutes || 0));
@@ -79,10 +81,19 @@ export default function DailyLogForm({
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <ClipboardCheck className="h-5 w-5" />
-          Daily log entry
-        </CardTitle>
+        <div className="flex items-center gap-3">
+          <img
+            src={getParticipantProfileImage(selectedParticipant?.profileImage)}
+            alt={selectedParticipant?.name || 'Participant'}
+            className="h-12 w-12 rounded-full border object-cover"
+          />
+          <div>
+            <CardTitle className="flex items-center gap-2">
+              <ClipboardCheck className="h-5 w-5" />
+              Daily log entry
+            </CardTitle>
+          </div>
+        </div>
         <CardDescription>
           Enter daily stats and preview the daily score before submitting. Week 0 entries build each participant&apos;s baseline, and they do not need to log every day.
         </CardDescription>
