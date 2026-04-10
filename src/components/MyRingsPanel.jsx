@@ -189,12 +189,13 @@ export default function MyRingsPanel({ participants, logs, selectedParticipantNa
         ) : view === 'month' ? (
           <MonthDetail summary={summary} />
         ) : (
-          <div className="grid flex-1 gap-6 lg:grid-cols-[0.95fr,1.05fr]">
-            <div className="flex flex-col items-center justify-center rounded-2xl border bg-slate-50 p-4">
+          <div className="grid flex-1 gap-6 lg:grid-cols-[1.2fr,0.8fr]">
+            <div className="flex flex-col items-center justify-center rounded-2xl border bg-slate-50 p-5">
               <SummaryRings
                 pointsProgress={summary.pointsProgress}
                 activeProgress={summary.activeProgress}
                 stepsProgress={summary.stepsProgress}
+                size={176}
               />
               <div className="mt-3 flex items-center justify-center gap-2">
                 <LedDot active={summary.workoutBonus} colorClass="bg-orange-400" />
@@ -209,7 +210,7 @@ export default function MyRingsPanel({ participants, logs, selectedParticipantNa
             </div>
 
             <div className="space-y-4">
-              <div className="grid gap-3 sm:grid-cols-3">
+              <div className="grid gap-3">
                 <MetricCard label="Points" value={summary.pointsText} color={RING_MOVE} />
                 <MetricCard label="Active mins" value={summary.activeText} color={RING_EXERCISE} />
                 <MetricCard label="Steps" value={summary.stepsText} color={RING_STAND} />
@@ -382,7 +383,7 @@ function MetricCard({ label, value, color }) {
         <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: color }} />
         {label}
       </div>
-      <div className="mt-2 text-lg font-semibold text-slate-800">{value}</div>
+      <div className="mt-2 text-right text-lg font-semibold text-slate-800">{value}</div>
     </div>
   );
 }
