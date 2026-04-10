@@ -97,14 +97,16 @@ export default function DailyLogForm({
           <div>
             <CardTitle className="flex items-center gap-2">
               <ClipboardCheck className="h-5 w-5" />
-              {showConfirmedTitle
-                ? `Daily log entry for ${confirmedParticipant.name}, ID: ${confirmedParticipant.id}`
+              {selectedParticipant
+                ? `Daily log entry for ${selectedParticipant.name}${showConfirmedTitle ? `, ID: ${confirmedParticipant.id}` : ''}`
                 : 'Daily log entry'}
             </CardTitle>
           </div>
         </div>
         <CardDescription>
-          Enter daily stats and preview the daily score before submitting. Week 0 entries build each participant&apos;s baseline, and they do not need to log every day.
+          {selectedParticipant
+            ? 'Enter daily stats and preview the daily score before submitting. Week 0 entries build each participant&apos;s baseline, and they do not need to log every day.'
+            : 'Select a participant to log activity.'}
         </CardDescription>
       </CardHeader>
       <CardContent className="grid gap-6 xl:grid-cols-[1.2fr,0.8fr]">

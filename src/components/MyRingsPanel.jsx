@@ -113,7 +113,7 @@ export default function MyRingsPanel({ participants, logs, selectedParticipantId
 
   const selectedParticipant = useMemo(() => {
     if (!participants.length) return null;
-    return participants.find((participant) => participant.id === selectedParticipantId) || participants[0];
+    return participants.find((participant) => participant.id === selectedParticipantId) || null;
   }, [participants, selectedParticipantId]);
 
   const summary = useMemo(() => {
