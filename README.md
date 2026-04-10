@@ -15,7 +15,7 @@ Participants of all levels can compete fairly through daily activity and weekly 
 ### Challenge Structure
 
 - Week 0 (Apr 27-May 3): Baseline tracking with no scoring
-- Weeks 1-4 (May 4-June 4): Scoring period
+- Weeks 1-4 (May 4-May 31): Scoring period
 
 Baseline is used to calculate weekly improvement bonuses.
 
@@ -231,13 +231,15 @@ For this repository, the site will publish at:
 
 ## Environment
 
-Create `.env.local`:
+Local development uses [.env.local](/Users/jtorres/Workspaces/pnb/fitness/nadabarkada-fitness/.env.local) and GitHub Pages production builds use [.env.production](/Users/jtorres/Workspaces/pnb/fitness/nadabarkada-fitness/.env.production).
+
+Current live Apps Script endpoint:
 
 ```bash
-VITE_APP_SCRIPT_URL=https://script.google.com/macros/s/REPLACE_WITH_YOUR_DEPLOYMENT/exec
+VITE_APP_SCRIPT_URL=https://script.google.com/macros/s/AKfycbwZsxnxev0uhG2sKsrjrrAncTrctkoyPquaHuFO_fC3sznq2kCL1Gpb9W10bEGl2_ME1w/exec
 ```
 
-If you leave it blank, the UI loads in mock/demo mode.
+If `VITE_APP_SCRIPT_URL` is omitted, the UI falls back to mock/demo mode and stores data in browser `localStorage`.
 
 ## Google Apps Script setup
 
@@ -261,6 +263,121 @@ High level:
 ## Workflow
 
 Current development can stay fully local. If `VITE_APP_SCRIPT_URL` is not set, the app runs in mock mode and keeps participant and daily log data in browser `localStorage`.
+
+## Next Steps
+
+This section is the current handoff note for the next work session.
+
+### Resume Context
+
+- To reopen the most recent Codex interactive session in this repo, run:
+- `codex -C /Users/jtorres/Workspaces/pnb/fitness/nadabarkada-fitness resume --last`
+- If you are already in the repo directory, `codex resume --last` is enough
+- Start the next session by asking Codex to continue from the `README.md` handoff note and implement the admin reset/seed workflow
+- Local `codex resume --last` session history is machine-specific and does not reliably carry across desktop and laptop
+- For cross-machine continuity, commit and push this repo, pull it on the other machine, then start Codex in the repo and continue from this `README.md` handoff note
+- Suggested cross-machine restart prompt:
+- `Continue from the README.md Next Steps handoff note. Implement the admin reset/seed workflow using the pickle repo auth pattern referenced there.`
+
+### 1) Backend smoke test
+
+- Open the deployed Apps Script URL with these query params:
+- `?action=participants`
+- `?action=dailyLogs`
+- `?action=leaderboard`
+- `?action=weeklySummary`
+- Confirm each returns JSON with `ok: true`
+- On a fresh sheet, `participants` and `dailyLogs` should be empty arrays
+
+### 2) Local frontend test
+
+- Run `npm run dev`
+- Confirm the app loads against the live Apps Script URL from `.env.local`
+- Add 1-2 test participants
+- Add baseline-week logs and scoring-week logs
+- Verify the sheet gets rows in `Participants` and `DailyLogs`
+- Verify leaderboard totals and weekly summary values look correct
+- Verify editing the same participant/date replaces the existing daily log instead of duplicating it
+
+### 3) Production GitHub Pages test
+
+- Push to `main` and let the `Deploy to GitHub Pages` workflow finish
+- Open `https://spaceshiptrip.github.io/nadabarkada-fitness/`
+- Confirm the production site can load participants and submit daily logs
+- Verify browser requests are hitting the deployed Apps Script URL from `.env.production`
+- Repeat one participant add and one daily log submission from production
+
+### 4) Test-data workflow
+
+- There is not yet an admin reset button in the UI
+- Test data can be created directly through the UI by adding test participants and logs
+- For isolated frontend-only testing, remove `VITE_APP_SCRIPT_URL` locally and use mock mode with browser `localStorage`
+- To clear mock-mode test data, clear browser `localStorage` for this site
+
+### 5) Pre-launch cleanup
+
+- Before launch, clear test rows from the Google Sheet tabs `Participants` and `DailyLogs`
+- Keep the header row intact in both tabs
+- Do not rename the tabs
+- If you used mock mode locally, also clear the browser `localStorage` so old demo data does not reappear during local testing
+- After cleanup, rerun the backend smoke test and one final frontend add/log verification
+
+### 6) Potential follow-up improvement
+
+- Add a simple admin-only reset or seed utility for test participants and logs so future test cycles do not require manual sheet cleanup
+
+### 7) Admin Reset/Seed Workflow Proposal
+
+- Goal: add a small admin-only utility to seed test participants/logs and clear test data before launch
+- Keep the first version simple and treat it as lightweight operational tooling, not full user auth
+- Reference auth implementation to reuse: [pickle backend Code.gs](/Users/jtorres/Workspaces/pnb/pickle/pickle/backend/google-apps-script/Code.gs)
+
+Recommended first version:
+
+- Add an admin panel in the frontend that is hidden behind a simple login gate
+- Require an admin PIN before showing reset/seed actions
+- Store the admin PIN in Apps Script `PropertiesService`, not in the sheet and not in the frontend bundle
+- Add dedicated Apps Script `POST` actions such as `adminSeedTestData` and `adminClearAllData`
+- Prefer a small session-based admin flow modeled after the pickle repo instead of sending the PIN on every destructive request
+- Validate the PIN server-side before creating the admin session or performing any destructive operation
+
+Suggested seed behavior:
+
+- Seed 2-4 realistic test participants
+- Seed baseline-week rows and scoring-week rows for each participant
+- Use deterministic sample data so leaderboard results are easy to sanity-check
+- Add a flag or naming pattern like `TEST - Maria` so seeded rows are easy to identify if partial cleanup is ever needed
+
+Suggested clear behavior:
+
+- Clear all rows below the header in `Participants`
+- Clear all rows below the header in `DailyLogs`
+- Keep the header row intact
+- Optionally support a safer mode later that clears only rows tagged as test data
+
+Admin auth notes:
+
+- Do not rely on frontend-only checks because the GitHub Pages site is public
+- Do not hardcode the admin PIN in `.env.production` because Vite env values are exposed to the client bundle
+- Keep the admin PIN in Apps Script project properties and compare on the server
+- For a first pass, a single shared admin PIN is enough
+- If needed later, expand this to named admins, rotating PINs, or Google-account-based restrictions
+
+Implementation note for next session:
+
+- Reuse the pickle repo auth helpers where useful:
+- `verifyPin_()`
+- `sha256Hex_()`
+- `getPinSalt_()`
+- `setPinSalt_()`
+- `auth_loginWithPin_()`
+- `requireAuth_()`
+- `auth_whoami_()`
+- `auth_logout_()`
+- Keep the fitness app implementation smaller than pickle and only port what is needed for admin tooling
+- Reuse the existing reserved auth direction in the schema where practical, but keep admin auth separate from participant auth
+- Participant `PhoneNumber` and `Pin` fields should not be used as the global admin credential
+- Add a visible confirmation step before any destructive reset action
 
 ### Baseline Week
 
