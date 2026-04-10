@@ -88,23 +88,24 @@ export default function DailyLogForm({
         </CardDescription>
       </CardHeader>
       <CardContent className="grid gap-6 xl:grid-cols-[1.2fr,0.8fr]">
-        <form onSubmit={submit} className="grid gap-4 rounded-2xl border bg-slate-50 p-4">
+        <form onSubmit={submit} className="grid min-w-0 gap-4 rounded-2xl border bg-slate-50 p-4">
           <div className="grid gap-4 sm:grid-cols-2">
-            <div className="grid gap-2">
+            <div className="grid min-w-0 gap-2">
               <Label htmlFor="log-date">Date</Label>
               <Input
                 id="log-date"
                 type="date"
+                className="min-w-0"
                 value={form.date}
                 onChange={(e) => setForm((prev) => ({ ...prev, date: e.target.value }))}
               />
             </div>
 
-            <div className="grid gap-2">
+            <div className="grid min-w-0 gap-2">
               <Label htmlFor="log-name">Participant</Label>
               <select
                 id="log-name"
-                className="h-10 w-full rounded-xl border bg-white px-3 text-sm"
+                className="h-10 min-w-0 w-full rounded-xl border bg-white px-3 text-sm"
                 value={participantValue}
                 onChange={(e) => {
                   const nextName = e.target.value;
@@ -123,7 +124,7 @@ export default function DailyLogForm({
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
-            <div className="grid gap-2">
+            <div className="grid min-w-0 gap-2">
               <Label htmlFor="active-minutes">Active minutes</Label>
               <Input
                 id="active-minutes"
@@ -135,7 +136,7 @@ export default function DailyLogForm({
               />
             </div>
 
-            <div className="grid gap-2">
+            <div className="grid min-w-0 gap-2">
               <Label htmlFor="steps">Steps</Label>
               <Input
                 id="steps"
