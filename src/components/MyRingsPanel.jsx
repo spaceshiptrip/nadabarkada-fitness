@@ -109,6 +109,7 @@ function DayRings({ log, size = 34 }) {
 
 export default function MyRingsPanel({ participants, logs, selectedParticipantName }) {
   const [view, setView] = useState('day');
+  const [showLegend, setShowLegend] = useState(false);
 
   const selectedParticipant = useMemo(() => {
     if (!participants.length) return null;
@@ -138,6 +139,34 @@ export default function MyRingsPanel({ participants, logs, selectedParticipantNa
             </CardDescription>
           </div>
         </div>
+        <div className="mt-4 rounded-2xl border bg-slate-50 px-3 py-2 text-[11px] text-slate-600 sm:text-xs">
+          <button
+            type="button"
+            onClick={() => setShowLegend((current) => !current)}
+            className="flex w-full items-center justify-between gap-3 text-left"
+            aria-expanded={showLegend}
+          >
+            <span className="font-semibold text-slate-700">Legend</span>
+            <span className="text-[10px] font-medium uppercase tracking-wide text-slate-500 sm:text-[11px]">
+              {showLegend ? 'Hide' : 'Show'}
+            </span>
+          </button>
+
+          {showLegend && (
+            <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-0.5">
+              <span className="inline-flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: RING_MOVE }} /> Points</span>
+              <span className="inline-flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: RING_EXERCISE }} /> Active mins</span>
+              <span className="inline-flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: RING_STAND }} /> Steps</span>
+              <div className="basis-full h-0 overflow-hidden" aria-hidden="true" />
+              <span className="inline-flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-full bg-orange-400" /> Workout bonus</span>
+              <span className="inline-flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-full bg-cyan-400" /> Mobility bonus</span>
+              <div className="basis-full h-0 overflow-hidden" aria-hidden="true" />
+              <span className="inline-flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-full bg-amber-400" /> Consistency bonus</span>
+              <span className="inline-flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-full bg-emerald-500" /> Improvement bonus</span>
+              <span className="inline-flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-full bg-violet-500" /> Personal best</span>
+            </div>
+          )}
+        </div>
       </CardHeader>
       <CardContent className="flex min-h-[420px] flex-col gap-5">
         <div className="flex flex-wrap gap-2">
@@ -157,6 +186,8 @@ export default function MyRingsPanel({ participants, logs, selectedParticipantNa
 
         {view === 'week' ? (
           <WeekDetail summary={summary} />
+        ) : view === 'month' ? (
+          <MonthDetail summary={summary} />
         ) : (
           <div className="grid flex-1 gap-6 lg:grid-cols-[0.95fr,1.05fr]">
             <div className="flex flex-col items-center justify-center rounded-2xl border bg-slate-50 p-4">
@@ -261,6 +292,96 @@ function WeekDetail({ summary }) {
   );
 }
 
+function MonthDetail({ summary }) {
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between rounded-2xl border bg-slate-50 px-4 py-3">
+        <div>
+          <div className="text-xs font-semibold uppercase tracking-widest text-slate-500">
+            {summary.periodLabel}
+          </div>
+          <div className="mt-1 text-xl font-bold text-slate-800">{summary.totalPoints} pts</div>
+        </div>
+        <div className="flex flex-wrap justify-end gap-2">
+          <BonusLed active={summary.consistencyBonus} colorClass="bg-amber-400" label="Consistency" />
+          <BonusLed active={summary.improvementBonus} colorClass="bg-emerald-500" label="Improvement" />
+          <BonusLed active={summary.personalBestBonus} colorClass="bg-violet-500" label="Personal best" />
+        </div>
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-3">
+        <MetricCard label="Points" value={summary.pointsText} color={RING_MOVE} />
+        <MetricCard label="Active mins" value={summary.activeText} color={RING_EXERCISE} />
+        <MetricCard label="Steps" value={summary.stepsText} color={RING_STAND} />
+      </div>
+
+      <div className="overflow-x-auto rounded-2xl border">
+        <table className="w-full table-fixed bg-white">
+          <thead>
+            <tr>
+              {DAY_LABELS.map((label) => (
+                <th key={label} className="px-1 pb-2 pt-3 text-center text-[10px] font-semibold text-slate-700 sm:text-xs">
+                  {label}
+                </th>
+              ))}
+              <th className="w-20 px-1 pb-2 pt-3 text-center text-[10px] font-semibold text-slate-700 sm:text-xs">
+                Wk bonus
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {summary.weeks.map((week, index) => (
+              <tr key={`month-week-${index}`} className="border-t">
+                {week.days.map((day) => (
+                  <td key={day.date || day.key} className="px-1 py-3 text-center align-top">
+                    {day.date ? (
+                      <div className="flex flex-col items-center gap-1">
+                        <div className="text-[10px] font-medium text-slate-600 sm:text-xs">{day.dayOfMonth}</div>
+                        <DayRings log={day.log} size={30} />
+                        <div className="flex items-center justify-center gap-1">
+                          <span
+                            className={`h-2 w-2 rounded-full border ${day.workoutBonus ? 'border-transparent bg-orange-400' : 'border-slate-300 bg-white'}`}
+                          />
+                          <span
+                            className={`h-2 w-2 rounded-full border ${day.mobilityBonus ? 'border-transparent bg-cyan-400' : 'border-slate-300 bg-white'}`}
+                          />
+                        </div>
+                        <span className={`text-[10px] font-semibold sm:text-xs ${day.log ? 'text-slate-700' : 'text-slate-300'}`}>
+                          {day.log ? `${day.points}` : '—'}
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="h-[82px]" />
+                    )}
+                  </td>
+                ))}
+                <td className="px-1 py-3 text-center align-top">
+                  <div className="flex flex-col items-center gap-1.5">
+                    <div className="flex items-center justify-center gap-1">
+                      <span
+                        className={`h-2.5 w-2.5 rounded-full border ${week.consistencyBonus > 0 ? 'border-transparent bg-amber-400' : 'border-slate-300 bg-white'}`}
+                      />
+                      <span
+                        className={`h-2.5 w-2.5 rounded-full border ${week.improvementBonus > 0 ? 'border-transparent bg-emerald-500' : 'border-slate-300 bg-white'}`}
+                      />
+                      <span
+                        className={`h-2.5 w-2.5 rounded-full border ${week.personalBestBonus > 0 ? 'border-transparent bg-violet-500' : 'border-slate-300 bg-white'}`}
+                      />
+                    </div>
+                    <div className="text-[10px] font-semibold text-slate-700 sm:text-xs">
+                      +{week.bonusPoints}
+                    </div>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 function MetricCard({ label, value, color }) {
   return (
     <div className="rounded-2xl border bg-white p-3">
@@ -353,6 +474,7 @@ function buildSummary(participant, logs, view) {
   const scoredMonthLogs = monthLogs.filter((entry) => Number(entry.challengeWeek) >= 1);
   const monthWeeks = [...new Set(scoredMonthLogs.map((entry) => Number(entry.challengeWeek)))];
   const weeklyStandings = monthWeeks.map((week) => getWeeklyStanding(participant, logs, week));
+  const monthCalendarWeeks = buildMonthCalendarWeeks(participantLogs, logs, participant, currentYear, currentMonth);
   const totalMonthPoints = weeklyStandings.reduce((sum, standing) => sum + standing.weeklyTotal, 0);
   const avgActiveMinutes = monthLogs.length
     ? monthLogs.reduce((sum, entry) => sum + Number(entry.activeMinutes || 0), 0) / monthLogs.length
@@ -376,6 +498,7 @@ function buildSummary(participant, logs, view) {
     consistencyBonus: weeklyStandings.some((standing) => standing.consistencyBonus > 0),
     improvementBonus: weeklyStandings.some((standing) => standing.improvementBonus > 0),
     personalBestBonus: weeklyStandings.some((standing) => standing.personalBestBonus > 0),
+    weeks: monthCalendarWeeks,
   };
 }
 
@@ -395,6 +518,7 @@ function buildEmptySummary() {
     improvementBonus: false,
     personalBestBonus: false,
     days: [],
+    weeks: [],
   };
 }
 
@@ -481,4 +605,66 @@ function addDays(dateStr, amount) {
 function shortDate(dateStr) {
   const date = new Date(`${dateStr}T12:00:00`);
   return `${date.getMonth() + 1}/${date.getDate()}`;
+}
+
+function buildMonthCalendarWeeks(participantLogs, allLogs, participant, year, month) {
+  const firstOfMonth = new Date(year, month, 1);
+  const lastOfMonth = new Date(year, month + 1, 0);
+  const firstMondayOffset = (firstOfMonth.getDay() + 6) % 7;
+  const gridStart = new Date(firstOfMonth);
+  gridStart.setDate(firstOfMonth.getDate() - firstMondayOffset);
+  const lastSundayOffset = 6 - ((lastOfMonth.getDay() + 6) % 7);
+  const gridEnd = new Date(lastOfMonth);
+  gridEnd.setDate(lastOfMonth.getDate() + lastSundayOffset);
+
+  const weeks = [];
+  const cursor = new Date(gridStart);
+
+  while (cursor <= gridEnd) {
+    const days = [];
+    const weekDates = [];
+
+    for (let index = 0; index < 7; index += 1) {
+      const date = cursor.toISOString().slice(0, 10);
+      const inMonth = cursor.getMonth() === month;
+      if (inMonth) {
+        const log = participantLogs.find((entry) => entry.date === date) || null;
+        days.push({
+          key: date,
+          date,
+          dayOfMonth: cursor.getDate(),
+          log,
+          points: log ? Number(log.dailyPoints ?? calculateDailyPoints(log)) : 0,
+          workoutBonus: Boolean(log?.workoutDone),
+          mobilityBonus: Boolean(log?.mobilityDone),
+        });
+      } else {
+        days.push({ key: `blank-${date}`, date: '', dayOfMonth: '', log: null, points: 0, workoutBonus: false, mobilityBonus: false });
+      }
+
+      weekDates.push(date);
+      cursor.setDate(cursor.getDate() + 1);
+    }
+
+    const inMonthDates = weekDates.filter((date) => {
+      const current = new Date(`${date}T12:00:00`);
+      return current.getMonth() === month && current.getFullYear() === year;
+    });
+    const challengeWeeks = [...new Set(inMonthDates.map((date) => getChallengeWeek(date)).filter((week) => week >= 1))];
+    const weekStandings = challengeWeeks.map((week) => getWeeklyStanding(participant, allLogs, week));
+    const bonusPoints = weekStandings.reduce(
+      (sum, standing) => sum + standing.consistencyBonus + standing.improvementBonus + standing.personalBestBonus,
+      0
+    );
+
+    weeks.push({
+      days,
+      consistencyBonus: weekStandings.some((standing) => standing.consistencyBonus > 0),
+      improvementBonus: weekStandings.some((standing) => standing.improvementBonus > 0),
+      personalBestBonus: weekStandings.some((standing) => standing.personalBestBonus > 0),
+      bonusPoints,
+    });
+  }
+
+  return weeks;
 }
