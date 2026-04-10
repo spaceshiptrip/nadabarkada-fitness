@@ -1,7 +1,9 @@
+import { CHALLENGE_CONFIG } from '@/lib/config';
+
 export const SCHEDULE = {
-  baselineStart: '2026-04-27',
-  week1Start: '2026-05-04',
-  endDate: '2026-06-07',
+  baselineStart: CHALLENGE_CONFIG.baselineStartDate,
+  week1Start: CHALLENGE_CONFIG.challengeStartDate,
+  endDate: CHALLENGE_CONFIG.challengeEndDate,
 };
 
 export function calculateActivityPoints(activeMinutes) {
@@ -76,22 +78,75 @@ export function calculateStepsImprovementBonus(baselineAverage, weeklyAverage) {
 export function getChallengeWeek(dateString) {
   const date = new Date(`${dateString}T12:00:00`);
   const baselineStart = new Date(`${SCHEDULE.baselineStart}T12:00:00`);
+  const week1Start = new Date(`${SCHEDULE.week1Start}T12:00:00`);
   const endDate = new Date(`${SCHEDULE.endDate}T23:59:59`);
   const msPerDay = 24 * 60 * 60 * 1000;
-  const diffDays = Math.floor((date - baselineStart) / msPerDay);
+  const baselineDiffDays = Math.floor((date - baselineStart) / msPerDay);
 
-  if (diffDays < 0) return -1;
+  if (baselineDiffDays < 0) return -1;
   if (date > endDate) return -1;
-  if (diffDays <= 6) return 0;
-  return Math.min(Math.floor((diffDays - 7) / 7) + 1, 4);
+  if (date < week1Start) return 0;
+
+  const scoringDiffDays = Math.floor((date - week1Start) / msPerDay);
+  return Math.floor(scoringDiffDays / 7) + 1;
 }
 
 export function getWeeklyDateRanges() {
-  return [
-    { label: 'Week 0 (Baseline)', start: '2026-04-27', end: '2026-05-03' },
-    { label: 'Week 1', start: '2026-05-04', end: '2026-05-10' },
-    { label: 'Week 2', start: '2026-05-11', end: '2026-05-17' },
-    { label: 'Week 3', start: '2026-05-18', end: '2026-05-24' },
-    { label: 'Week 4', start: '2026-05-25', end: '2026-06-07' },
-  ];
+  const ranges = [];
+  const baselineStart = new Date(`${SCHEDULE.baselineStart}T12:00:00`);
+  const week1Start = new Date(`${SCHEDULE.week1Start}T12:00:00`);
+  const endDate = new Date(`${SCHEDULE.endDate}T12:00:00`);
+
+  ranges.push({
+    label: 'Week 0 (Baseline)',
+    start: toIsoDate(baselineStart),
+    end: toIsoDate(addDaysToDate(baselineStart, 6)),
+  });
+
+  let weekIndex = 1;
+  let cursor = new Date(week1Start);
+  while (cursor <= endDate) {
+    const weekEnd = addDaysToDate(cursor, 6);
+    ranges.push({
+      label: `Week ${weekIndex}`,
+      start: toIsoDate(cursor),
+      end: toIsoDate(weekEnd <= endDate ? weekEnd : endDate),
+    });
+    cursor = addDaysToDate(cursor, 7);
+    weekIndex += 1;
+  }
+
+  return ranges;
+}
+
+export function getScoringWeekNumbers() {
+  return getWeeklyDateRanges()
+    .map((range, index) => (index === 0 ? null : index))
+    .filter((week) => week !== null);
+}
+
+export function formatScheduleDate(dateString, options = {}) {
+  return new Date(`${dateString}T12:00:00`).toLocaleDateString(undefined, {
+    month: 'long',
+    day: 'numeric',
+    ...options,
+  });
+}
+
+export function formatScheduleDateShort(dateString) {
+  return new Date(`${dateString}T12:00:00`).toLocaleDateString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+}
+
+function addDaysToDate(date, days) {
+  const next = new Date(date);
+  next.setDate(next.getDate() + days);
+  return next;
+}
+
+function toIsoDate(date) {
+  return date.toISOString().slice(0, 10);
 }

@@ -1,4 +1,4 @@
-import { getWeeklyDateRanges } from '@/lib/points';
+import { getWeeklyDateRanges, SCHEDULE, formatScheduleDate } from '@/lib/points';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 
 export default function ChallengeOverview() {
@@ -10,7 +10,7 @@ export default function ChallengeOverview() {
       <CardHeader>
         <CardTitle>Challenge timeline</CardTitle>
         <CardDescription>
-          Baseline week begins April 27, 2026. Week 0 logs set each participant&apos;s starting averages, and scored competition starts May 4, 2026.
+          Baseline week begins {formatScheduleDate(SCHEDULE.baselineStart, { year: 'numeric' })}. Week 0 logs set each participant&apos;s starting averages, and scored competition starts {formatScheduleDate(SCHEDULE.week1Start, { year: 'numeric' })}.
         </CardDescription>
       </CardHeader>
       <CardContent>

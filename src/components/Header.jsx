@@ -1,4 +1,5 @@
 import { Trophy, CalendarDays, Activity } from 'lucide-react';
+import { SCHEDULE, formatScheduleDate, formatScheduleDateShort } from '@/lib/points';
 
 export default function Header() {
   return (
@@ -13,9 +14,9 @@ export default function Header() {
 
         <div className="md:col-span-2">
           <h1 className="text-center text-3xl font-bold tracking-tight md:text-5xl">
-            <span className="block">April 27 baseline.</span>
-            <span className="block">May 4 start.</span>
-            <span className="block">June 7 finish.</span>
+            <span className="block">{formatScheduleDate(SCHEDULE.baselineStart)} baseline.</span>
+            <span className="block">{formatScheduleDate(SCHEDULE.week1Start)} start.</span>
+            <span className="block">{formatScheduleDate(SCHEDULE.endDate)} finish.</span>
           </h1>
         </div>
 
@@ -25,7 +26,9 @@ export default function Header() {
               <CalendarDays className="h-4 w-4" />
               Schedule
             </div>
-            <div className="text-sm font-semibold">Apr 27 – Jun 7, 2026</div>
+            <div className="text-sm font-semibold">
+              {formatScheduleDateShort(SCHEDULE.baselineStart)} - {formatScheduleDateShort(SCHEDULE.endDate)}
+            </div>
           </div>
           <div className="rounded-2xl bg-white/10 p-4 text-center backdrop-blur-sm">
             <div className="mb-2 flex items-center justify-center gap-2 text-blue-100">

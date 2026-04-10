@@ -3,6 +3,7 @@ import {
   calculateConsistencyBonus,
   calculateStepsImprovementBonus,
   getChallengeWeek,
+  getScoringWeekNumbers,
   isActiveDay,
 } from '@/lib/points';
 
@@ -112,7 +113,7 @@ export function buildWeeklySummaryRows(participants, logs) {
     const personLogs = logs.filter((log) => log.name === participant.name);
     let priorBest = 0;
 
-    [1, 2, 3, 4].forEach((week) => {
+    getScoringWeekNumbers().forEach((week) => {
       const weekLogs = personLogs.filter((log) => Number(log.challengeWeek) === week);
       if (!weekLogs.length) return;
 
@@ -160,7 +161,7 @@ function calculateWeeklyBonusesForParticipant(participant, logs) {
   let totalBonuses = 0;
   let priorBest = 0;
 
-  [1, 2, 3, 4].forEach((week) => {
+  getScoringWeekNumbers().forEach((week) => {
     const weekLogs = personLogs.filter((log) => Number(log.challengeWeek) === week);
     if (!weekLogs.length) return;
 
