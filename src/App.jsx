@@ -31,6 +31,7 @@ export default function App() {
   const [message, setMessage] = useState('');
   const [showRules, setShowRules] = useState(false);
   const [selectedParticipantId, setSelectedParticipantId] = useState('');
+  const [confirmedParticipantId, setConfirmedParticipantId] = useState('');
 
   async function loadAll() {
     try {
@@ -65,17 +66,20 @@ export default function App() {
   useEffect(() => {
     if (!derivedParticipants.length) {
       setSelectedParticipantId('');
+      setConfirmedParticipantId('');
       return;
     }
+    const hasSelectedParticipant = derivedParticipants.some((participant) => participant.id === selectedParticipantId);
+    const hasConfirmedParticipant = derivedParticipants.some((participant) => participant.id === confirmedParticipantId);
 
-    const hasSelectedParticipant = derivedParticipants.some(
-      (participant) => participant.id === selectedParticipantId
-    );
-
-    if (!hasSelectedParticipant) {
-      setSelectedParticipantId(derivedParticipants[0].id);
+    if (selectedParticipantId && !hasSelectedParticipant) {
+      setSelectedParticipantId('');
     }
-  }, [derivedParticipants, selectedParticipantId]);
+
+    if (confirmedParticipantId && !hasConfirmedParticipant) {
+      setConfirmedParticipantId('');
+    }
+  }, [derivedParticipants, selectedParticipantId, confirmedParticipantId]);
 
   async function handleAddParticipant(payload) {
     try {
@@ -97,6 +101,9 @@ export default function App() {
       setMessage('');
       const result = await logDailyEntry(payload);
       await loadAll();
+      if (result?.ok && payload.participantId) {
+        setConfirmedParticipantId(payload.participantId);
+      }
       setMessage(
         `Saved log for ${payload.name} on ${payload.date}. Daily points: ${result?.data?.dailyPoints ?? 'computed on backend'}`
       );
@@ -158,12 +165,13 @@ export default function App() {
         <div className="grid gap-6 xl:grid-cols-2">
           <div className="min-w-0">
             <DailyLogForm
-                participants={derivedParticipants}
-                onSubmit={handleLogEntry}
-                loading={submittingLog}
-                selectedParticipantId={selectedParticipantId}
-                onSelectedParticipantChange={setSelectedParticipantId}
-              />
+              participants={derivedParticipants}
+              onSubmit={handleLogEntry}
+              loading={submittingLog}
+              selectedParticipantId={selectedParticipantId}
+              onSelectedParticipantChange={setSelectedParticipantId}
+              confirmedParticipantId={confirmedParticipantId}
+            />
           </div>
           <div className="min-w-0">
               <MyRingsPanel

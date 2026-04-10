@@ -33,11 +33,14 @@ export default function DailyLogForm({
   loading,
   selectedParticipantId,
   onSelectedParticipantChange,
+  confirmedParticipantId,
 }) {
   const [form, setForm] = useState(initialState);
 
   const participantValue = selectedParticipantId ?? form.name;
   const selectedParticipant = participants.find((participant) => participant.id === participantValue) || null;
+  const confirmedParticipant =
+    participants.find((participant) => participant.id === confirmedParticipantId) || null;
 
   const breakdown = useMemo(() => {
     const activity = calculateActivityPoints(Number(form.activeMinutes || 0));
@@ -91,7 +94,9 @@ export default function DailyLogForm({
           <div>
             <CardTitle className="flex items-center gap-2">
               <ClipboardCheck className="h-5 w-5" />
-              Daily log entry
+              {confirmedParticipant
+                ? `Daily log entry for ${confirmedParticipant.name}, ID: ${confirmedParticipant.id}`
+                : 'Daily log entry'}
             </CardTitle>
           </div>
         </div>
