@@ -29,7 +29,7 @@ export default function App() {
   const [loadingParticipants, setLoadingParticipants] = useState(false);
   const [submittingLog, setSubmittingLog] = useState(false);
   const [message, setMessage] = useState('');
-  const [showRules, setShowRules] = useState(true);
+  const [showRules, setShowRules] = useState(false);
   const [selectedParticipantName, setSelectedParticipantName] = useState('');
 
   async function loadAll() {
