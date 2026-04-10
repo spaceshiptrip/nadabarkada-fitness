@@ -43,7 +43,7 @@ Maximum 10 points per day.
 - Must be intentional: run, gym, class, sport, and similar activities
 - Max 1 workout bonus per day
 
-#### Mobility / Recovery
+#### Self-Care
 
 - +1 point for stretching, yoga, or mobility of 5+ minutes
 - Max 1 per day
@@ -109,7 +109,7 @@ Teams are optional and meant to increase motivation and participation without re
 Definitions:
 
 - Workout: 20+ minutes of intentional activity
-- Mobility: 5+ minutes of recovery or stretching
+- Self-Care: 5+ minutes of recovery or stretching
 - Active day: 10+ activity minutes
 
 General rules:
@@ -154,7 +154,7 @@ Tie-breakers:
 - 45 minute run = 4
 - Workout bonus = +2
 - 10,000 steps = +3
-- Mobility = +1
+- Self-Care = +1
 
 Total = 10 points after the daily cap
 

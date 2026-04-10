@@ -31,13 +31,19 @@ export default function DailyLogForm({
   participants,
   onSubmit,
   loading,
-  selectedParticipantName,
+  selectedParticipantId,
   onSelectedParticipantChange,
+  confirmedParticipantId,
 }) {
   const [form, setForm] = useState(initialState);
 
-  const participantValue = selectedParticipantName ?? form.name;
-  const selectedParticipant = participants.find((participant) => participant.name === participantValue) || null;
+  const participantValue = selectedParticipantId ?? form.name;
+  const selectedParticipant = participants.find((participant) => participant.id === participantValue) || null;
+  const confirmedParticipant =
+    participants.find((participant) => participant.id === confirmedParticipantId) || null;
+  const showConfirmedTitle = Boolean(
+    confirmedParticipant && selectedParticipant && confirmedParticipant.id === selectedParticipant.id
+  );
 
   const breakdown = useMemo(() => {
     const activity = calculateActivityPoints(Number(form.activeMinutes || 0));
@@ -56,7 +62,8 @@ export default function DailyLogForm({
 
     await onSubmit({
       date: form.date,
-      name: participantValue,
+      participantId: selectedParticipant?.id || '',
+      name: selectedParticipant?.name || '',
       activeMinutes: Number(form.activeMinutes || 0),
       workoutDone: form.workoutDone,
       steps: Number(form.steps || 0),
@@ -75,7 +82,7 @@ export default function DailyLogForm({
     { label: 'Activity', value: breakdown.activity, max: 5 },
     { label: 'Workout bonus', value: breakdown.workout, max: 2 },
     { label: 'Steps', value: breakdown.steps, max: 3 },
-    { label: 'Mobility bonus', value: breakdown.mobility, max: 1 },
+    { label: 'Self-Care bonus', value: breakdown.mobility, max: 1 },
   ];
 
   return (
@@ -83,19 +90,23 @@ export default function DailyLogForm({
       <CardHeader>
         <div className="flex items-center gap-3">
           <img
-            src={getParticipantProfileImage(selectedParticipant?.profileImage)}
+            src={selectedParticipant ? getParticipantProfileImage(selectedParticipant.profileImage) : getParticipantProfileImage('')}
             alt={selectedParticipant?.name || 'Participant'}
             className="h-12 w-12 rounded-full border object-cover"
           />
           <div>
             <CardTitle className="flex items-center gap-2">
               <ClipboardCheck className="h-5 w-5" />
-              Daily log entry
+              {selectedParticipant
+                ? `Daily log entry for ${selectedParticipant.name}${showConfirmedTitle ? `, ID: ${confirmedParticipant.id}` : ''}`
+                : 'Daily log entry'}
             </CardTitle>
           </div>
         </div>
         <CardDescription>
-          Enter daily stats and preview the daily score before submitting. Week 0 entries build each participant&apos;s baseline, and they do not need to log every day.
+          {selectedParticipant
+            ? 'Enter daily stats and preview the daily score before submitting. Week 0 entries build each participant&apos;s baseline, and they do not need to log every day.'
+            : 'Select a participant to log activity.'}
         </CardDescription>
       </CardHeader>
       <CardContent className="grid gap-6 xl:grid-cols-[1.2fr,0.8fr]">
@@ -119,14 +130,14 @@ export default function DailyLogForm({
                 className="h-10 min-w-0 w-full rounded-xl border bg-white px-3 text-sm"
                 value={participantValue}
                 onChange={(e) => {
-                  const nextName = e.target.value;
-                  setForm((prev) => ({ ...prev, name: nextName }));
-                  onSelectedParticipantChange?.(nextName);
+                  const nextParticipantId = e.target.value;
+                  setForm((prev) => ({ ...prev, name: nextParticipantId }));
+                  onSelectedParticipantChange?.(nextParticipantId);
                 }}
               >
                 <option value="">Select participant</option>
                 {participants.map((participant) => (
-                  <option key={participant.name} value={participant.name}>
+                  <option key={participant.id || participant.name} value={participant.id || participant.name}>
                     {participant.name}
                   </option>
                 ))}
@@ -176,7 +187,7 @@ export default function DailyLogForm({
                 checked={form.mobilityDone}
                 onChange={(e) => setForm((prev) => ({ ...prev, mobilityDone: e.target.checked }))}
               />
-              Mobility / recovery (5+ min)
+              Self-Care (5+ min)
             </label>
           </div>
 

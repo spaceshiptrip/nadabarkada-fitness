@@ -3,22 +3,27 @@
 ## Sheet: Participants
 Headers:
 ```text
-Name | DeviceType | TeamName | BaselineActiveMinutes | BaselineSteps | Active | CreatedAt
+UserId | Name | DeviceType | TeamName | BaselineActiveMinutes | BaselineSteps | Active | CreatedAt | ProfileImage | BaselineOverride | PhoneNumber | Pin
 ```
 
 ### Notes
+- `UserId` is the stable participant identifier used by logs and future auth flows.
 - `BaselineActiveMinutes` is the participant’s average daily active minutes during Week 0.
 - `BaselineSteps` is the participant’s average daily steps during Week 0.
 - `Active` can be `TRUE` or `FALSE`.
+- `ProfileImage` stores the participant headshot or fallback image URL/data.
+- `BaselineOverride` controls whether manual baseline values override computed Week 0 baselines.
+- `PhoneNumber` and `Pin` are reserved for future lightweight authentication.
 
 ## Sheet: DailyLogs
 Headers:
 ```text
-Date | Name | ActiveMinutes | WorkoutDone | Steps | MobilityDone | Notes | DailyPoints | ChallengeWeek | CreatedAt
+Date | ParticipantId | Name | ActiveMinutes | WorkoutDone | Steps | MobilityDone | Notes | DailyPoints | ChallengeWeek | CreatedAt
 ```
 
 ### Notes
 - `Date` should be in `YYYY-MM-DD`
+- `ParticipantId` should reference `Participants.UserId`
 - `WorkoutDone` and `MobilityDone` can be `TRUE/FALSE`
 - `DailyPoints` is computed server-side when the row is submitted
 - `ChallengeWeek` is derived from the date

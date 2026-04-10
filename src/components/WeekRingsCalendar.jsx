@@ -8,7 +8,7 @@ import {
   isActiveDay,
 } from '@/lib/points';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { getParticipantProfileImage } from '@/lib/participants';
+import { getParticipantKey, getParticipantProfileImage, matchesParticipant } from '@/lib/participants';
 
 // Apple Watch ring colors
 const RING_MOVE     = '#FA3E57'; // red   — daily points (main ring)
@@ -94,7 +94,7 @@ export default function WeekRingsCalendar({
 
   const visibleParticipants = participants.length > 0
     ? participants
-    : [...new Set(logs.map((l) => l.name))].map((name) => ({ name, profileImage: '' }));
+    : [...new Map(logs.map((log) => [String(log.participantId || log.name), { id: log.participantId || '', name: log.name, profileImage: '' }])).values()];
 
   const rankedParticipants = visibleParticipants
     .map((participant) => {
@@ -111,8 +111,8 @@ export default function WeekRingsCalendar({
   const topParticipant = rankedParticipants[0] || null;
   const weekEnded = new Date(`${week.end}T23:59:59`) < new Date();
 
-  function getLog(name, date) {
-    return logs.find((l) => l.name === name && l.date === date) || null;
+  function getLog(participant, date) {
+    return logs.find((log) => matchesParticipant(participant, log) && log.date === date) || null;
   }
 
   return (
@@ -167,7 +167,7 @@ export default function WeekRingsCalendar({
               <span className="inline-flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: RING_STAND }} /> Steps</span>
               <div className="basis-full h-0 overflow-hidden" aria-hidden="true" />
               <span className="inline-flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-full bg-orange-400" /> Workout bonus</span>
-              <span className="inline-flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-full bg-cyan-400" /> Mobility bonus</span>
+              <span className="inline-flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-full bg-cyan-400" /> Self-Care bonus</span>
               <div className="basis-full h-0 overflow-hidden" aria-hidden="true" />
               <span className="inline-flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-full bg-amber-400" /> Consistency bonus</span>
               <span className="inline-flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-full bg-emerald-500" /> Improvement bonus</span>
@@ -192,7 +192,7 @@ export default function WeekRingsCalendar({
             </thead>
             <tbody>
               {rankedParticipants.map((participant, index) => (
-                <tr key={participant.name} className="border-t">
+                <tr key={getParticipantKey(participant)} className="border-t">
                   <td className="py-2 pr-1 align-top sm:py-3 sm:pr-2">
                     <div className="flex flex-col items-center gap-1.5">
                       <img
@@ -216,7 +216,7 @@ export default function WeekRingsCalendar({
                     </div>
                   </td>
                   {days.map((date) => {
-                    const log = getLog(participant.name, date);
+                    const log = getLog(participant, date);
                     const pts = log ? (log.dailyPoints ?? calculateDailyPoints(log)) : null;
                     return (
                       <td key={date} className="py-2 text-center sm:py-3">
@@ -254,7 +254,7 @@ function BonusLed({ active, colorClass }) {
 
 function getWeeklyStanding(participant, logs, selectedWeek) {
   const weekLogs = logs.filter(
-    (log) => log.name === participant.name && Number(log.challengeWeek) === selectedWeek
+    (log) => matchesParticipant(participant, log) && Number(log.challengeWeek) === selectedWeek
   );
 
   if (selectedWeek === 0) {
@@ -286,7 +286,7 @@ function getWeeklyStanding(participant, logs, selectedWeek) {
   let priorBest = 0;
   for (let week = 1; week < selectedWeek; week += 1) {
     const priorWeekLogs = logs.filter(
-      (log) => log.name === participant.name && Number(log.challengeWeek) === week
+      (log) => matchesParticipant(participant, log) && Number(log.challengeWeek) === week
     );
     if (!priorWeekLogs.length) continue;
 
