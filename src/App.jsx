@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ChevronDown, ChevronUp } from 'lucide-react';
+import { ChevronDown, ChevronUp, Menu, X } from 'lucide-react';
 import Header from '@/components/Header';
 import RulesCard from '@/components/RulesCard';
 import ParticipantManager from '@/components/ParticipantManager';
@@ -16,7 +16,7 @@ import {
   getWeeklySummary,
   logDailyEntry,
 } from '@/lib/api';
-import { mergeParticipantsWithBaselines } from '@/lib/participants';
+import { getParticipantProfileImage, mergeParticipantsWithBaselines } from '@/lib/participants';
 
 export default function App() {
   const [participants, setParticipants] = useState([]);
@@ -32,6 +32,7 @@ export default function App() {
   const [showRules, setShowRules] = useState(false);
   const [selectedParticipantId, setSelectedParticipantId] = useState('');
   const [confirmedParticipantId, setConfirmedParticipantId] = useState('');
+  const [showNavMenu, setShowNavMenu] = useState(false);
 
   async function loadAll() {
     try {
@@ -61,6 +62,10 @@ export default function App() {
   const derivedParticipants = useMemo(
     () => mergeParticipantsWithBaselines(participants, dailyLogs),
     [participants, dailyLogs]
+  );
+  const selectedParticipant = useMemo(
+    () => derivedParticipants.find((participant) => participant.id === selectedParticipantId) || null,
+    [derivedParticipants, selectedParticipantId]
   );
 
   useEffect(() => {
@@ -114,8 +119,80 @@ export default function App() {
     }
   }
 
+  function handleParticipantSelection(nextParticipantId) {
+    setSelectedParticipantId(nextParticipantId);
+    if (nextParticipantId !== confirmedParticipantId) {
+      setConfirmedParticipantId('');
+    }
+  }
+
+  function scrollToSection(sectionId) {
+    const element = document.getElementById(sectionId);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+    setShowNavMenu(false);
+  }
+
   return (
     <div className="app-shell">
+      <div className="sticky top-0 z-30 mb-6 rounded-2xl border border-white/20 bg-gradient-to-r from-blue-600/95 to-indigo-700/95 p-3 text-white shadow-soft backdrop-blur">
+        <div className="relative flex items-center justify-between gap-3">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowNavMenu((current) => !current)}
+            aria-expanded={showNavMenu}
+            aria-label="Toggle navigation menu"
+            className="text-white hover:bg-white/15 hover:text-white"
+          >
+            {showNavMenu ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </Button>
+
+          <div className="min-w-0 flex-1 text-center">
+            <div className="text-sm font-semibold text-white">NadaBarkada Fitness Challenge</div>
+          </div>
+
+          <div className="flex min-w-0 items-center gap-3">
+            {selectedParticipant ? (
+              <>
+                <img
+                  src={getParticipantProfileImage(selectedParticipant.profileImage)}
+                  alt={selectedParticipant.name}
+                  className="h-10 w-10 rounded-full border object-cover"
+                />
+                <div className="hidden min-w-0 text-right sm:block">
+                  <div className="truncate text-sm font-semibold text-white">{selectedParticipant.name}</div>
+                  <div className="truncate text-xs text-blue-100">{selectedParticipant.id}</div>
+                </div>
+              </>
+            ) : (
+              <div className="text-xs text-blue-100">No participant selected</div>
+            )}
+          </div>
+
+          {showNavMenu && (
+            <div className="absolute left-0 top-full mt-3 w-60 rounded-2xl border border-white/20 bg-gradient-to-b from-blue-600 to-indigo-700 p-2 text-white shadow-soft">
+              {[
+                ['Daily Log Entry', 'daily-log-entry'],
+                ['My Rings', 'my-rings'],
+                ['Leaderboard', 'leaderboard'],
+                ['Admin', 'admin-panels'],
+              ].map(([label, id]) => (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => scrollToSection(id)}
+                  className="flex w-full rounded-xl px-3 py-2 text-left text-sm text-white hover:bg-white/15"
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
       <Header />
 
       <div className="mb-6 rounded-2xl border bg-white p-4 shadow-soft">
@@ -163,27 +240,27 @@ export default function App() {
 
       <div className="mb-8 space-y-8">
         <div className="grid gap-6 xl:grid-cols-2">
-          <div className="min-w-0">
+          <div id="daily-log-entry" className="min-w-0">
             <DailyLogForm
               participants={derivedParticipants}
               onSubmit={handleLogEntry}
               loading={submittingLog}
               selectedParticipantId={selectedParticipantId}
-              onSelectedParticipantChange={setSelectedParticipantId}
+              onSelectedParticipantChange={handleParticipantSelection}
               confirmedParticipantId={confirmedParticipantId}
             />
           </div>
-          <div className="min-w-0">
-              <MyRingsPanel
-                participants={derivedParticipants}
-                logs={dailyLogs}
+          <div id="my-rings" className="min-w-0">
+            <MyRingsPanel
+              participants={derivedParticipants}
+              logs={dailyLogs}
                 selectedParticipantId={selectedParticipantId}
               />
           </div>
         </div>
 
         <div className="grid gap-6 xl:grid-cols-2">
-          <div className="min-w-0">
+          <div id="leaderboard" className="min-w-0">
             <WeekRingsCalendar
               logs={dailyLogs}
               participants={derivedParticipants}
@@ -201,7 +278,7 @@ export default function App() {
         </div>
       </div>
 
-      <div className="mb-4">
+      <div id="admin-panels" className="mb-4">
         <h2 className="section-title">Admin panels</h2>
         <p className="section-subtitle">
           Manage participants, baseline overrides, and profile photos.

@@ -41,6 +41,9 @@ export default function DailyLogForm({
   const selectedParticipant = participants.find((participant) => participant.id === participantValue) || null;
   const confirmedParticipant =
     participants.find((participant) => participant.id === confirmedParticipantId) || null;
+  const showConfirmedTitle = Boolean(
+    confirmedParticipant && selectedParticipant && confirmedParticipant.id === selectedParticipant.id
+  );
 
   const breakdown = useMemo(() => {
     const activity = calculateActivityPoints(Number(form.activeMinutes || 0));
@@ -87,14 +90,14 @@ export default function DailyLogForm({
       <CardHeader>
         <div className="flex items-center gap-3">
           <img
-            src={getParticipantProfileImage(selectedParticipant?.profileImage)}
+            src={selectedParticipant ? getParticipantProfileImage(selectedParticipant.profileImage) : getParticipantProfileImage('')}
             alt={selectedParticipant?.name || 'Participant'}
             className="h-12 w-12 rounded-full border object-cover"
           />
           <div>
             <CardTitle className="flex items-center gap-2">
               <ClipboardCheck className="h-5 w-5" />
-              {confirmedParticipant
+              {showConfirmedTitle
                 ? `Daily log entry for ${confirmedParticipant.name}, ID: ${confirmedParticipant.id}`
                 : 'Daily log entry'}
             </CardTitle>
