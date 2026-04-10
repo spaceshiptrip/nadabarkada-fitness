@@ -1,7 +1,7 @@
 export const SCHEDULE = {
   baselineStart: '2026-04-27',
   week1Start: '2026-05-04',
-  endDate: '2026-06-04',
+  endDate: '2026-06-07',
 };
 
 export function calculateActivityPoints(activeMinutes) {
@@ -76,10 +76,12 @@ export function calculateStepsImprovementBonus(baselineAverage, weeklyAverage) {
 export function getChallengeWeek(dateString) {
   const date = new Date(`${dateString}T12:00:00`);
   const baselineStart = new Date(`${SCHEDULE.baselineStart}T12:00:00`);
+  const endDate = new Date(`${SCHEDULE.endDate}T23:59:59`);
   const msPerDay = 24 * 60 * 60 * 1000;
   const diffDays = Math.floor((date - baselineStart) / msPerDay);
 
   if (diffDays < 0) return -1;
+  if (date > endDate) return -1;
   if (diffDays <= 6) return 0;
   return Math.min(Math.floor((diffDays - 7) / 7) + 1, 4);
 }
@@ -90,6 +92,6 @@ export function getWeeklyDateRanges() {
     { label: 'Week 1', start: '2026-05-04', end: '2026-05-10' },
     { label: 'Week 2', start: '2026-05-11', end: '2026-05-17' },
     { label: 'Week 3', start: '2026-05-18', end: '2026-05-24' },
-    { label: 'Week 4', start: '2026-05-25', end: '2026-06-04' },
+    { label: 'Week 4', start: '2026-05-25', end: '2026-06-07' },
   ];
 }
