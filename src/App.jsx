@@ -136,8 +136,9 @@ export default function App() {
 
   return (
     <div className="app-shell">
-      <div className="sticky top-0 z-30 mb-6 rounded-2xl border border-white/20 bg-gradient-to-r from-blue-600/95 to-indigo-700/95 p-3 text-white shadow-soft backdrop-blur">
-        <div className="relative flex items-center justify-between gap-3">
+      <div className="fixed inset-x-0 top-0 z-50 px-4 pt-3 md:px-6">
+        <div className="mx-auto max-w-7xl rounded-2xl border border-white/20 bg-gradient-to-r from-blue-600/95 to-indigo-700/95 p-3 text-white shadow-soft backdrop-blur">
+          <div className="relative flex items-center justify-between gap-3">
           <Button
             variant="ghost"
             size="sm"
@@ -192,6 +193,9 @@ export default function App() {
           )}
         </div>
       </div>
+      </div>
+
+      <div className="h-24" />
 
       <Header />
 
