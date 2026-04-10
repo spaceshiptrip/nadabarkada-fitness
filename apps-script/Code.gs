@@ -6,7 +6,7 @@ const DAILY_LOG_HEADERS = ['Date', 'ParticipantId', 'Name', 'ActiveMinutes', 'Wo
 
 const BASELINE_START = new Date('2026-04-27T00:00:00');
 const WEEK1_START = new Date('2026-05-04T00:00:00');
-const CHALLENGE_END = new Date('2026-06-07T23:59:59');
+const CHALLENGE_END = new Date('2026-05-31T23:59:59');
 
 function doGet(e) {
   const action = (e && e.parameter && e.parameter.action) || '';
@@ -211,13 +211,14 @@ function getWeeklySummary_() {
   const participants = getParticipants_();
   const logs = getDailyLogs_();
   const results = [];
+  const scoringWeeks = getScoringWeekNumbers_();
 
   participants.forEach(function(participant) {
     const baseline = getParticipantBaseline_(participant, logs);
     const personLogs = logs.filter(function(log) { return matchesParticipant_(participant, log); });
     let priorBest = 0;
 
-    [1, 2, 3, 4].forEach(function(week) {
+    scoringWeeks.forEach(function(week) {
       const weekLogs = personLogs.filter(function(log) { return number_(log.challengeWeek) === week; });
       if (!weekLogs.length) return;
 
@@ -263,8 +264,9 @@ function calculateAllWeeklyBonusesForParticipant_(participant, allLogs) {
   const personLogs = allLogs.filter(function(log) { return matchesParticipant_(participant, log); });
   let totalBonuses = 0;
   let priorBest = 0;
+  const scoringWeeks = getScoringWeekNumbers_();
 
-  [1, 2, 3, 4].forEach(function(week) {
+  scoringWeeks.forEach(function(week) {
     const weekLogs = personLogs.filter(function(log) { return number_(log.challengeWeek) === week; });
     if (!weekLogs.length) return;
 
@@ -374,12 +376,27 @@ function calculateStepsImprovementBonus_(baselineAverage, weeklyAverage) {
 function getChallengeWeek_(dateString) {
   if (!dateString) return -1;
   const date = new Date(String(dateString) + 'T12:00:00');
-  const diffDays = Math.floor((date.getTime() - BASELINE_START.getTime()) / (24 * 60 * 60 * 1000));
+  const msPerDay = 24 * 60 * 60 * 1000;
 
-  if (diffDays < 0) return -1;
+  if (date.getTime() < BASELINE_START.getTime()) return -1;
   if (date.getTime() > CHALLENGE_END.getTime()) return -1;
-  if (diffDays <= 6) return 0;
-  return Math.min(Math.floor((diffDays - 7) / 7) + 1, 4);
+  if (date.getTime() < WEEK1_START.getTime()) return 0;
+
+  const diffDays = Math.floor((date.getTime() - WEEK1_START.getTime()) / msPerDay);
+  return Math.floor(diffDays / 7) + 1;
+}
+
+function getScoringWeekNumbers_() {
+  const msPerDay = 24 * 60 * 60 * 1000;
+  const diffDays = Math.floor((CHALLENGE_END.getTime() - WEEK1_START.getTime()) / msPerDay);
+  const totalWeeks = Math.floor(diffDays / 7) + 1;
+  const weeks = [];
+
+  for (var week = 1; week <= totalWeeks; week += 1) {
+    weeks.push(week);
+  }
+
+  return weeks;
 }
 
 function getSheet_(name) {
