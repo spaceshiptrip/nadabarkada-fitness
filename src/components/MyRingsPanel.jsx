@@ -139,18 +139,37 @@ export default function MyRingsPanel({ participants, logs, selectedParticipantNa
             </CardDescription>
           </div>
         </div>
-        <div className="mt-4 rounded-2xl border bg-slate-50 px-3 py-2 text-[11px] text-slate-600 sm:text-xs">
-          <button
-            type="button"
-            onClick={() => setShowLegend((current) => !current)}
-            className="flex w-full items-center justify-between gap-3 text-left"
-            aria-expanded={showLegend}
-          >
-            <span className="font-semibold text-slate-700">Legend</span>
-            <span className="text-[10px] font-medium uppercase tracking-wide text-slate-500 sm:text-[11px]">
-              {showLegend ? 'Hide' : 'Show'}
-            </span>
-          </button>
+      </CardHeader>
+      <CardContent className="flex min-h-[420px] flex-col gap-5">
+        <div className="rounded-2xl border bg-slate-50 px-3 py-2 text-[11px] text-slate-600 sm:text-xs">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex flex-wrap gap-2">
+              {['day', 'week', 'month'].map((mode) => (
+                <button
+                  key={mode}
+                  type="button"
+                  onClick={() => setView(mode)}
+                  className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+                    view === mode ? 'bg-primary text-primary-foreground' : 'border bg-white text-slate-600 hover:bg-slate-50'
+                  }`}
+                >
+                  {mode[0].toUpperCase() + mode.slice(1)}
+                </button>
+              ))}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setShowLegend((current) => !current)}
+              className="flex items-center gap-2 text-left"
+              aria-expanded={showLegend}
+            >
+              <span className="font-semibold text-slate-700">Legend</span>
+              <span className="text-[10px] font-medium uppercase tracking-wide text-slate-500 sm:text-[11px]">
+                {showLegend ? 'Hide' : 'Show'}
+              </span>
+            </button>
+          </div>
 
           {showLegend && (
             <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-0.5">
@@ -166,22 +185,6 @@ export default function MyRingsPanel({ participants, logs, selectedParticipantNa
               <span className="inline-flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-full bg-violet-500" /> Personal best</span>
             </div>
           )}
-        </div>
-      </CardHeader>
-      <CardContent className="flex min-h-[420px] flex-col gap-5">
-        <div className="flex flex-wrap gap-2">
-          {['day', 'week', 'month'].map((mode) => (
-            <button
-              key={mode}
-              type="button"
-              onClick={() => setView(mode)}
-              className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-                view === mode ? 'bg-primary text-primary-foreground' : 'border bg-white text-slate-600 hover:bg-slate-50'
-              }`}
-            >
-              {mode[0].toUpperCase() + mode.slice(1)}
-            </button>
-          ))}
         </div>
 
         {view === 'week' ? (
@@ -264,11 +267,13 @@ function WeekDetail({ summary }) {
       </div>
 
       <div className="rounded-2xl border bg-slate-50 px-4 py-3">
-        <div>
+        <div className="flex items-end justify-between gap-4">
           <div className="text-xs font-semibold uppercase tracking-widest text-slate-500">
             {summary.periodLabel}
           </div>
-          <div className="mt-1 text-xl font-bold text-slate-800">{summary.totalPoints} pts</div>
+          <div className="text-right text-2xl font-bold text-slate-800 sm:text-3xl">
+            {summary.totalPoints} pts
+          </div>
         </div>
       </div>
 
