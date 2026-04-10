@@ -153,7 +153,7 @@ export default function App() {
               <WeekRingsCalendar
                 logs={dailyLogs}
                 participants={derivedParticipants}
-                title="Your week at a glance"
+                title="Leaderboard Rings"
               />
             </div>
           </div>
