@@ -26,8 +26,16 @@ const initialState = {
   notes: '',
 };
 
-export default function DailyLogForm({ participants, onSubmit, loading }) {
+export default function DailyLogForm({
+  participants,
+  onSubmit,
+  loading,
+  selectedParticipantName,
+  onSelectedParticipantChange,
+}) {
   const [form, setForm] = useState(initialState);
+
+  const participantValue = selectedParticipantName ?? form.name;
 
   const breakdown = useMemo(() => {
     const activity = calculateActivityPoints(Number(form.activeMinutes || 0));
@@ -42,11 +50,11 @@ export default function DailyLogForm({ participants, onSubmit, loading }) {
 
   const submit = async (event) => {
     event.preventDefault();
-    if (!form.name) return;
+    if (!participantValue) return;
 
     await onSubmit({
       date: form.date,
-      name: form.name,
+      name: participantValue,
       activeMinutes: Number(form.activeMinutes || 0),
       workoutDone: form.workoutDone,
       steps: Number(form.steps || 0),
@@ -57,7 +65,7 @@ export default function DailyLogForm({ participants, onSubmit, loading }) {
     setForm((prev) => ({
       ...initialState,
       date: prev.date,
-      name: prev.name,
+      name: participantValue,
     }));
   };
 
@@ -97,8 +105,12 @@ export default function DailyLogForm({ participants, onSubmit, loading }) {
               <select
                 id="log-name"
                 className="h-10 w-full rounded-xl border bg-white px-3 text-sm"
-                value={form.name}
-                onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))}
+                value={participantValue}
+                onChange={(e) => {
+                  const nextName = e.target.value;
+                  setForm((prev) => ({ ...prev, name: nextName }));
+                  onSelectedParticipantChange?.(nextName);
+                }}
               >
                 <option value="">Select participant</option>
                 {participants.map((participant) => (

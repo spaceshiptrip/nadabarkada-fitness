@@ -6,7 +6,7 @@ import RulesCard from '@/components/RulesCard';
 import ParticipantManager from '@/components/ParticipantManager';
 import DailyLogForm from '@/components/DailyLogForm';
 import LeaderboardTable from '@/components/LeaderboardTable';
-import WeeklySummaryCards from '@/components/WeeklySummaryCards';
+import MyRingsPanel from '@/components/MyRingsPanel';
 import WeekRingsCalendar from '@/components/WeekRingsCalendar';
 import { Button } from '@/components/ui/button';
 import {
@@ -31,6 +31,7 @@ export default function App() {
   const [submittingLog, setSubmittingLog] = useState(false);
   const [message, setMessage] = useState('');
   const [showRules, setShowRules] = useState(true);
+  const [selectedParticipantName, setSelectedParticipantName] = useState('');
 
   async function loadAll() {
     try {
@@ -61,6 +62,21 @@ export default function App() {
     () => mergeParticipantsWithBaselines(participants, dailyLogs),
     [participants, dailyLogs]
   );
+
+  useEffect(() => {
+    if (!derivedParticipants.length) {
+      setSelectedParticipantName('');
+      return;
+    }
+
+    const hasSelectedParticipant = derivedParticipants.some(
+      (participant) => participant.name === selectedParticipantName
+    );
+
+    if (!hasSelectedParticipant) {
+      setSelectedParticipantName(derivedParticipants[0].name);
+    }
+  }, [derivedParticipants, selectedParticipantName]);
 
   async function handleAddParticipant(payload) {
     try {
@@ -147,24 +163,29 @@ export default function App() {
         <div className="min-w-0 space-y-8">
           <div className="grid gap-6 xl:grid-cols-2">
             <div className="min-w-0">
-              <DailyLogForm participants={derivedParticipants} onSubmit={handleLogEntry} loading={submittingLog} />
+              <DailyLogForm
+                participants={derivedParticipants}
+                onSubmit={handleLogEntry}
+                loading={submittingLog}
+                selectedParticipantName={selectedParticipantName}
+                onSelectedParticipantChange={setSelectedParticipantName}
+              />
             </div>
             <div className="min-w-0">
-              <WeekRingsCalendar
-                logs={dailyLogs}
+              <MyRingsPanel
                 participants={derivedParticipants}
-                title="Your week at a glance"
+                logs={dailyLogs}
+                selectedParticipantName={selectedParticipantName}
               />
             </div>
           </div>
 
           <div className="grid gap-6 xl:grid-cols-2">
             <div className="min-w-0">
-              <WeeklySummaryCards
-                rows={weeklySummary}
-                source={summarySource}
-                title="Leaderboard week at a glance"
-                description="Weekly rollups and bonuses by participant."
+              <WeekRingsCalendar
+                logs={dailyLogs}
+                participants={derivedParticipants}
+                title="Weekly Leaderboard Rings"
               />
             </div>
             <div className="min-w-0">
