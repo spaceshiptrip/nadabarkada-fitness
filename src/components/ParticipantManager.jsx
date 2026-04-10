@@ -165,7 +165,7 @@ export default function ParticipantManager({ participants, onAddParticipant, loa
             <div className="mt-3 flex flex-wrap gap-2">
               <Button
                 type="button"
-                variant={form.baselineOverride ? 'secondary' : 'outline'}
+                variant="outline"
                 size="sm"
                 onClick={() =>
                   setForm((prev) => ({
@@ -175,6 +175,7 @@ export default function ParticipantManager({ participants, onAddParticipant, loa
                     baselineSteps: prev.baselineOverride ? '' : prev.baselineSteps,
                   }))
                 }
+                className="border-red-300 text-red-700 hover:border-red-400 hover:bg-red-50 hover:text-red-800"
               >
                 {form.baselineOverride ? 'Use computed baseline' : 'Override computed baseline'}
               </Button>
@@ -183,7 +184,7 @@ export default function ParticipantManager({ participants, onAddParticipant, loa
             {form.baselineOverride && (
               <div className="mt-4 grid gap-4 sm:grid-cols-2">
                 <div className="grid gap-2">
-                  <Label htmlFor="baseline-active">Manual baseline active minutes</Label>
+                  <Label htmlFor="baseline-active" className="text-red-700">Manual baseline active minutes</Label>
                   <Input
                     id="baseline-active"
                     type="number"
@@ -196,7 +197,7 @@ export default function ParticipantManager({ participants, onAddParticipant, loa
                   />
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="baseline-steps">Manual baseline steps</Label>
+                  <Label htmlFor="baseline-steps" className="text-red-700">Manual baseline steps</Label>
                   <Input
                     id="baseline-steps"
                     type="number"

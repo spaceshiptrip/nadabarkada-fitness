@@ -30,6 +30,7 @@ export default function App() {
   const [submittingLog, setSubmittingLog] = useState(false);
   const [message, setMessage] = useState('');
   const [showRules, setShowRules] = useState(false);
+  const [showAdmin, setShowAdmin] = useState(false);
   const [selectedParticipantId, setSelectedParticipantId] = useState('');
   const [confirmedParticipantId, setConfirmedParticipantId] = useState('');
   const [showNavMenu, setShowNavMenu] = useState(false);
@@ -282,19 +283,35 @@ export default function App() {
         </div>
       </div>
 
-      <div id="admin-panels" className="mb-4">
-        <h2 className="section-title">Admin panels</h2>
-        <p className="section-subtitle">
-          Manage participants, baseline overrides, and profile photos.
-        </p>
+      <div id="admin-panels" className="mb-6 rounded-2xl border bg-white p-4 shadow-soft">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="section-title">Admin panels</h2>
+            <p className="section-subtitle">
+              Manage participants, roster, baseline overrides, and profile photos.
+            </p>
+          </div>
+          <Button
+            variant="outline"
+            onClick={() => setShowAdmin((current) => !current)}
+            aria-expanded={showAdmin}
+          >
+            {showAdmin ? <ChevronUp className="mr-2 h-4 w-4" /> : <ChevronDown className="mr-2 h-4 w-4" />}
+            {showAdmin ? 'Collapse admin' : 'Expand admin'}
+          </Button>
+        </div>
       </div>
 
-      <ParticipantManager
-        participants={derivedParticipants}
-        onAddParticipant={handleAddParticipant}
-        loading={loadingParticipants}
-      />
-      <div className="mt-4 text-sm text-muted-foreground">Data source: {participantsSource}</div>
+      {showAdmin && (
+        <>
+          <ParticipantManager
+            participants={derivedParticipants}
+            onAddParticipant={handleAddParticipant}
+            loading={loadingParticipants}
+          />
+          <div className="mt-4 text-sm text-muted-foreground">Data source: {participantsSource}</div>
+        </>
+      )}
     </div>
   );
 }

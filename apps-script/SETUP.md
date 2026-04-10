@@ -12,6 +12,8 @@ Create a Google Sheet and add two tabs:
 UserId | Name | DeviceType | TeamName | BaselineActiveMinutes | BaselineSteps | Active | CreatedAt | ProfileImage | BaselineOverride | PhoneNumber | Pin
 ```
 
+`Active` uses `1` for active and `0` for inactive. Inactive participants stay in the sheet but are omitted from the normal participant roster returned by the API.
+
 ### DailyLogs
 ```text
 Date | ParticipantId | Name | ActiveMinutes | WorkoutDone | Steps | MobilityDone | Notes | DailyPoints | ChallengeWeek | CreatedAt
