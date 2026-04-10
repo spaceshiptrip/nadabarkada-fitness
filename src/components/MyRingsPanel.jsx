@@ -9,7 +9,7 @@ import {
   isActiveDay,
 } from '@/lib/points';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { getParticipantProfileImage } from '@/lib/participants';
+import { getParticipantProfileImage, matchesParticipant } from '@/lib/participants';
 
 const RING_MOVE = '#FA3E57';
 const RING_EXERCISE = '#92E82C';
@@ -107,14 +107,14 @@ function DayRings({ log, size = 34 }) {
   );
 }
 
-export default function MyRingsPanel({ participants, logs, selectedParticipantName }) {
+export default function MyRingsPanel({ participants, logs, selectedParticipantId }) {
   const [view, setView] = useState('day');
   const [showLegend, setShowLegend] = useState(false);
 
   const selectedParticipant = useMemo(() => {
     if (!participants.length) return null;
-    return participants.find((participant) => participant.name === selectedParticipantName) || participants[0];
-  }, [participants, selectedParticipantName]);
+    return participants.find((participant) => participant.id === selectedParticipantId) || participants[0];
+  }, [participants, selectedParticipantId]);
 
   const summary = useMemo(() => {
     if (!selectedParticipant) return buildEmptySummary();
@@ -437,7 +437,7 @@ function LedDot({ active, colorClass }) {
 }
 
 function buildSummary(participant, logs, view) {
-  const participantLogs = logs.filter((log) => log.name === participant.name);
+  const participantLogs = logs.filter((log) => matchesParticipant(participant, log));
   const today = new Date();
   const todayIso = today.toISOString().slice(0, 10);
   const currentWeek = getChallengeWeek(todayIso);
@@ -578,7 +578,7 @@ function buildEmptySummary() {
 }
 
 function getWeeklyStanding(participant, logs, selectedWeek) {
-  const weekLogs = logs.filter((log) => log.name === participant.name && Number(log.challengeWeek) === selectedWeek);
+  const weekLogs = logs.filter((log) => matchesParticipant(participant, log) && Number(log.challengeWeek) === selectedWeek);
 
   if (selectedWeek <= 0) {
     const baselineTotal = weekLogs.reduce((sum, log) => sum + Number(log.dailyPoints ?? calculateDailyPoints(log)), 0);
@@ -607,7 +607,7 @@ function getWeeklyStanding(participant, logs, selectedWeek) {
 
   let priorBest = 0;
   for (let week = 1; week < selectedWeek; week += 1) {
-    const priorWeekLogs = logs.filter((log) => log.name === participant.name && Number(log.challengeWeek) === week);
+    const priorWeekLogs = logs.filter((log) => matchesParticipant(participant, log) && Number(log.challengeWeek) === week);
     if (!priorWeekLogs.length) continue;
 
     const priorDailyTotal = priorWeekLogs.reduce((sum, log) => sum + Number(log.dailyPoints ?? calculateDailyPoints(log)), 0);

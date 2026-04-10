@@ -31,13 +31,13 @@ export default function DailyLogForm({
   participants,
   onSubmit,
   loading,
-  selectedParticipantName,
+  selectedParticipantId,
   onSelectedParticipantChange,
 }) {
   const [form, setForm] = useState(initialState);
 
-  const participantValue = selectedParticipantName ?? form.name;
-  const selectedParticipant = participants.find((participant) => participant.name === participantValue) || null;
+  const participantValue = selectedParticipantId ?? form.name;
+  const selectedParticipant = participants.find((participant) => participant.id === participantValue) || null;
 
   const breakdown = useMemo(() => {
     const activity = calculateActivityPoints(Number(form.activeMinutes || 0));
@@ -56,7 +56,8 @@ export default function DailyLogForm({
 
     await onSubmit({
       date: form.date,
-      name: participantValue,
+      participantId: selectedParticipant?.id || '',
+      name: selectedParticipant?.name || '',
       activeMinutes: Number(form.activeMinutes || 0),
       workoutDone: form.workoutDone,
       steps: Number(form.steps || 0),
@@ -119,14 +120,14 @@ export default function DailyLogForm({
                 className="h-10 min-w-0 w-full rounded-xl border bg-white px-3 text-sm"
                 value={participantValue}
                 onChange={(e) => {
-                  const nextName = e.target.value;
-                  setForm((prev) => ({ ...prev, name: nextName }));
-                  onSelectedParticipantChange?.(nextName);
+                  const nextParticipantId = e.target.value;
+                  setForm((prev) => ({ ...prev, name: nextParticipantId }));
+                  onSelectedParticipantChange?.(nextParticipantId);
                 }}
               >
                 <option value="">Select participant</option>
                 {participants.map((participant) => (
-                  <option key={participant.name} value={participant.name}>
+                  <option key={participant.id || participant.name} value={participant.id || participant.name}>
                     {participant.name}
                   </option>
                 ))}

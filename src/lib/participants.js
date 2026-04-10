@@ -30,6 +30,7 @@ export function getParticipantProfileImage(profileImage) {
 export function normalizeParticipant(participant) {
   return {
     ...participant,
+    id: participant?.id || participant?.userId || '',
     baselineActiveMinutes: Number(participant?.baselineActiveMinutes || 0),
     baselineSteps: Number(participant?.baselineSteps || 0),
     baselineOverride: Boolean(participant?.baselineOverride),
@@ -37,9 +38,21 @@ export function normalizeParticipant(participant) {
   };
 }
 
+export function getParticipantKey(participant) {
+  return String(participant?.id || participant?.userId || participant?.name || '');
+}
+
+export function matchesParticipant(participant, log) {
+  const participantId = String(participant?.id || participant?.userId || '').trim();
+  const logParticipantId = String(log?.participantId || '').trim();
+
+  if (participantId && logParticipantId) return participantId === logParticipantId;
+  return String(participant?.name || '').trim() === String(log?.name || '').trim();
+}
+
 export function getParticipantBaselineMetrics(participant, logs) {
   const baselineLogs = logs.filter(
-    (log) => log.name === participant.name && getChallengeWeek(log.date) === 0
+    (log) => matchesParticipant(participant, log) && getChallengeWeek(log.date) === 0
   );
 
   const loggedDays = baselineLogs.length;
@@ -87,7 +100,7 @@ export function buildLeaderboardRows(participants, logs) {
   return participantsWithBaselines
     .map((participant) => {
       const scoredLogs = logs.filter(
-        (log) => log.name === participant.name && Number(log.challengeWeek) >= 1
+        (log) => matchesParticipant(participant, log) && Number(log.challengeWeek) >= 1
       );
       const dailyTotal = scoredLogs.reduce((sum, log) => sum + Number(log.dailyPoints || 0), 0);
       const weeklyBonuses = calculateWeeklyBonusesForParticipant(participant, logs);
@@ -110,7 +123,7 @@ export function buildWeeklySummaryRows(participants, logs) {
   const results = [];
 
   participantsWithBaselines.forEach((participant) => {
-    const personLogs = logs.filter((log) => log.name === participant.name);
+    const personLogs = logs.filter((log) => matchesParticipant(participant, log));
     let priorBest = 0;
 
     getScoringWeekNumbers().forEach((week) => {
@@ -157,7 +170,7 @@ export function buildWeeklySummaryRows(participants, logs) {
 }
 
 function calculateWeeklyBonusesForParticipant(participant, logs) {
-  const personLogs = logs.filter((log) => log.name === participant.name);
+  const personLogs = logs.filter((log) => matchesParticipant(participant, log));
   let totalBonuses = 0;
   let priorBest = 0;
 

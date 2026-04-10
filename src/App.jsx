@@ -30,7 +30,7 @@ export default function App() {
   const [submittingLog, setSubmittingLog] = useState(false);
   const [message, setMessage] = useState('');
   const [showRules, setShowRules] = useState(false);
-  const [selectedParticipantName, setSelectedParticipantName] = useState('');
+  const [selectedParticipantId, setSelectedParticipantId] = useState('');
 
   async function loadAll() {
     try {
@@ -64,18 +64,18 @@ export default function App() {
 
   useEffect(() => {
     if (!derivedParticipants.length) {
-      setSelectedParticipantName('');
+      setSelectedParticipantId('');
       return;
     }
 
     const hasSelectedParticipant = derivedParticipants.some(
-      (participant) => participant.name === selectedParticipantName
+      (participant) => participant.id === selectedParticipantId
     );
 
     if (!hasSelectedParticipant) {
-      setSelectedParticipantName(derivedParticipants[0].name);
+      setSelectedParticipantId(derivedParticipants[0].id);
     }
-  }, [derivedParticipants, selectedParticipantName]);
+  }, [derivedParticipants, selectedParticipantId]);
 
   async function handleAddParticipant(payload) {
     try {
@@ -158,19 +158,19 @@ export default function App() {
         <div className="grid gap-6 xl:grid-cols-2">
           <div className="min-w-0">
             <DailyLogForm
-              participants={derivedParticipants}
-              onSubmit={handleLogEntry}
-              loading={submittingLog}
-              selectedParticipantName={selectedParticipantName}
-              onSelectedParticipantChange={setSelectedParticipantName}
-            />
+                participants={derivedParticipants}
+                onSubmit={handleLogEntry}
+                loading={submittingLog}
+                selectedParticipantId={selectedParticipantId}
+                onSelectedParticipantChange={setSelectedParticipantId}
+              />
           </div>
           <div className="min-w-0">
-            <MyRingsPanel
-              participants={derivedParticipants}
-              logs={dailyLogs}
-              selectedParticipantName={selectedParticipantName}
-            />
+              <MyRingsPanel
+                participants={derivedParticipants}
+                logs={dailyLogs}
+                selectedParticipantId={selectedParticipantId}
+              />
           </div>
         </div>
 

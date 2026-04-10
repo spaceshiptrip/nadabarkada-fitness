@@ -254,7 +254,7 @@ export default function ParticipantManager({ participants, onAddParticipant, loa
               <div className="text-sm text-muted-foreground">No participants yet.</div>
             )}
             {participants.map((participant) => (
-              <div key={participant.name} className="rounded-xl border p-3">
+              <div key={participant.id || participant.name} className="rounded-xl border p-3">
                 <div className="flex items-center gap-3">
                   <img
                     src={getParticipantProfileImage(participant.profileImage)}
@@ -272,6 +272,14 @@ export default function ParticipantManager({ participants, onAddParticipant, loa
                 <div className="mt-2 text-xs text-muted-foreground">
                   Baseline: {formatBaselineNumber(participant.effectiveBaselineActiveMinutes)} active min/day,{' '}
                   {formatBaselineNumber(participant.effectiveBaselineSteps)} steps/day
+                </div>
+                <div className="mt-2 rounded-lg border bg-slate-50 px-2 py-1.5">
+                  <div className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">
+                    User ID
+                  </div>
+                  <div className="mt-1 break-all font-mono text-xs text-slate-700">
+                    {participant.id || 'Pending backend ID'}
+                  </div>
                 </div>
                 <div className="mt-1 text-xs text-muted-foreground">
                   {participant.baselineSource === 'manual'
