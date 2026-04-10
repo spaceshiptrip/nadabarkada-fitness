@@ -6,9 +6,9 @@ import RulesCard from '@/components/RulesCard';
 import ParticipantManager from '@/components/ParticipantManager';
 import DailyLogForm from '@/components/DailyLogForm';
 import LeaderboardTable from '@/components/LeaderboardTable';
-import WeeklySummaryCards from '@/components/WeeklySummaryCards';
 import WeekRingsCalendar from '@/components/WeekRingsCalendar';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import {
   addParticipant,
   getDailyLogs,
@@ -150,21 +150,26 @@ export default function App() {
               <DailyLogForm participants={derivedParticipants} onSubmit={handleLogEntry} loading={submittingLog} />
             </div>
             <div className="min-w-0">
-              <WeekRingsCalendar
-                logs={dailyLogs}
-                participants={derivedParticipants}
-                title="Leaderboard Rings"
-              />
+              <Card className="h-full">
+                <CardHeader>
+                  <CardTitle>My Rings</CardTitle>
+                  <CardDescription>
+                    Personal daily ring view will go here.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="flex min-h-[420px] items-center justify-center rounded-b-2xl border-t bg-slate-50 text-sm text-muted-foreground">
+                  My Rings panel coming next.
+                </CardContent>
+              </Card>
             </div>
           </div>
 
           <div className="grid gap-6 xl:grid-cols-2">
             <div className="min-w-0">
-              <WeeklySummaryCards
-                rows={weeklySummary}
-                source={summarySource}
-                title="Leaderboard week at a glance"
-                description="Weekly rollups and bonuses by participant."
+              <WeekRingsCalendar
+                logs={dailyLogs}
+                participants={derivedParticipants}
+                title="Leaderboard Rings"
               />
             </div>
             <div className="min-w-0">
