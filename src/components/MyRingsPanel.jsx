@@ -226,26 +226,6 @@ export default function MyRingsPanel({ participants, logs, selectedParticipantNa
 function WeekDetail({ summary }) {
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between rounded-2xl border bg-slate-50 px-4 py-3">
-        <div>
-          <div className="text-xs font-semibold uppercase tracking-widest text-slate-500">
-            {summary.periodLabel}
-          </div>
-          <div className="mt-1 text-xl font-bold text-slate-800">{summary.totalPoints} pts</div>
-        </div>
-        <div className="flex flex-wrap justify-end gap-2">
-          <BonusLed active={summary.consistencyBonus} colorClass="bg-amber-400" label="Consistency" />
-          <BonusLed active={summary.improvementBonus} colorClass="bg-emerald-500" label="Improvement" />
-          <BonusLed active={summary.personalBestBonus} colorClass="bg-violet-500" label="Personal best" />
-        </div>
-      </div>
-
-      <div className="grid gap-3 sm:grid-cols-3">
-        <MetricCard label="Points" value={summary.pointsText} color={RING_MOVE} />
-        <MetricCard label="Active mins" value={summary.activeText} color={RING_EXERCISE} />
-        <MetricCard label="Steps" value={summary.stepsText} color={RING_STAND} />
-      </div>
-
       <div className="overflow-x-auto rounded-2xl border">
         <table className="w-full table-fixed bg-white">
           <thead>
@@ -281,6 +261,45 @@ function WeekDetail({ summary }) {
             </tr>
           </tbody>
         </table>
+      </div>
+
+      <div className="rounded-2xl border bg-slate-50 px-4 py-3">
+        <div>
+          <div className="text-xs font-semibold uppercase tracking-widest text-slate-500">
+            {summary.periodLabel}
+          </div>
+          <div className="mt-1 text-xl font-bold text-slate-800">{summary.totalPoints} pts</div>
+        </div>
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-3">
+        <MetricCard label="Points" value={summary.pointsText} color={RING_MOVE} />
+        <MetricCard label="Active mins" value={summary.activeText} color={RING_EXERCISE} />
+        <MetricCard label="Steps" value={summary.stepsText} color={RING_STAND} />
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-3">
+        <BonusMetricCard
+          label="Consistency"
+          value={`+${summary.consistencyPoints}`}
+          active={summary.consistencyBonus}
+          colorClass="bg-amber-400"
+          detail={summary.consistencyDetail}
+        />
+        <BonusMetricCard
+          label="Improvement"
+          value={`+${summary.improvementPoints}`}
+          active={summary.improvementBonus}
+          colorClass="bg-emerald-500"
+          detail={summary.improvementDetail}
+        />
+        <BonusMetricCard
+          label="Personal best"
+          value={`+${summary.personalBestPoints}`}
+          active={summary.personalBestBonus}
+          colorClass="bg-violet-500"
+          detail={summary.personalBestDetail}
+        />
       </div>
     </div>
   );
@@ -388,6 +407,21 @@ function MetricCard({ label, value, color }) {
   );
 }
 
+function BonusMetricCard({ label, value, active, colorClass, detail }) {
+  return (
+    <div className="rounded-2xl border bg-white p-3">
+      <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-slate-500">
+        <span
+          className={`h-2.5 w-2.5 rounded-full border ${active ? `${colorClass} border-transparent` : 'border-slate-300 bg-white'}`}
+        />
+        {label}
+      </div>
+      <div className="mt-2 text-right text-lg font-semibold text-slate-800">{value}</div>
+      <div className="mt-1 text-right text-xs text-muted-foreground">{detail}</div>
+    </div>
+  );
+}
+
 function LedDot({ active, colorClass }) {
   return (
     <span
@@ -445,6 +479,7 @@ function buildSummary(participant, logs, view) {
       : [];
     const weekLogs = participantLogs.filter((entry) => Number(entry.challengeWeek) === currentWeek);
     const standing = getWeeklyStanding(participant, logs, currentWeek);
+    const activeDays = weekLogs.filter((entry) => isActiveDay(entry)).length;
     const avgActiveMinutes = weekLogs.length
       ? weekLogs.reduce((sum, entry) => sum + Number(entry.activeMinutes || 0), 0) / weekLogs.length
       : 0;
@@ -466,6 +501,12 @@ function buildSummary(participant, logs, view) {
       consistencyBonus: standing.consistencyBonus > 0,
       improvementBonus: standing.improvementBonus > 0,
       personalBestBonus: standing.personalBestBonus > 0,
+      consistencyPoints: standing.consistencyBonus,
+      improvementPoints: standing.improvementBonus,
+      personalBestPoints: standing.personalBestBonus,
+      consistencyDetail: buildConsistencyDetail(activeDays, standing.consistencyBonus),
+      improvementDetail: buildImprovementDetail(standing),
+      personalBestDetail: standing.personalBestBonus > 0 ? 'Beat prior best week' : 'No best-week bonus',
       days,
     };
   }
@@ -522,6 +563,12 @@ function buildEmptySummary() {
     personalBestBonus: false,
     days: [],
     weeks: [],
+    consistencyPoints: 0,
+    improvementPoints: 0,
+    personalBestPoints: 0,
+    consistencyDetail: 'No consistency bonus',
+    improvementDetail: 'No improvement bonus',
+    personalBestDetail: 'No best-week bonus',
   };
 }
 
@@ -576,9 +623,26 @@ function getWeeklyStanding(participant, logs, selectedWeek) {
   return {
     consistencyBonus,
     improvementBonus,
+    activeMinutesBonus,
+    stepsBonus,
     personalBestBonus,
     weeklyTotal: subtotal + personalBestBonus,
   };
+}
+
+function buildConsistencyDetail(activeDays, bonusPoints) {
+  if (!bonusPoints) return `${activeDays} active days`;
+  return `${activeDays} active days earned it`;
+}
+
+function buildImprovementDetail(standing) {
+  if (!standing.improvementBonus) return 'No improvement bonus';
+
+  const parts = [];
+  if (standing.activeMinutesBonus > 0) parts.push(`active +${standing.activeMinutesBonus}`);
+  if (standing.stepsBonus > 0) parts.push(`steps +${standing.stepsBonus}`);
+
+  return parts.join(', ');
 }
 
 function formatDateLabel(dateString) {
