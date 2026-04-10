@@ -6,9 +6,9 @@ import RulesCard from '@/components/RulesCard';
 import ParticipantManager from '@/components/ParticipantManager';
 import DailyLogForm from '@/components/DailyLogForm';
 import LeaderboardTable from '@/components/LeaderboardTable';
+import MyRingsPanel from '@/components/MyRingsPanel';
 import WeekRingsCalendar from '@/components/WeekRingsCalendar';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import {
   addParticipant,
   getDailyLogs,
@@ -31,6 +31,7 @@ export default function App() {
   const [submittingLog, setSubmittingLog] = useState(false);
   const [message, setMessage] = useState('');
   const [showRules, setShowRules] = useState(true);
+  const [selectedParticipantName, setSelectedParticipantName] = useState('');
 
   async function loadAll() {
     try {
@@ -61,6 +62,21 @@ export default function App() {
     () => mergeParticipantsWithBaselines(participants, dailyLogs),
     [participants, dailyLogs]
   );
+
+  useEffect(() => {
+    if (!derivedParticipants.length) {
+      setSelectedParticipantName('');
+      return;
+    }
+
+    const hasSelectedParticipant = derivedParticipants.some(
+      (participant) => participant.name === selectedParticipantName
+    );
+
+    if (!hasSelectedParticipant) {
+      setSelectedParticipantName(derivedParticipants[0].name);
+    }
+  }, [derivedParticipants, selectedParticipantName]);
 
   async function handleAddParticipant(payload) {
     try {
@@ -147,20 +163,20 @@ export default function App() {
         <div className="min-w-0 space-y-8">
           <div className="grid gap-6 xl:grid-cols-2">
             <div className="min-w-0">
-              <DailyLogForm participants={derivedParticipants} onSubmit={handleLogEntry} loading={submittingLog} />
+              <DailyLogForm
+                participants={derivedParticipants}
+                onSubmit={handleLogEntry}
+                loading={submittingLog}
+                selectedParticipantName={selectedParticipantName}
+                onSelectedParticipantChange={setSelectedParticipantName}
+              />
             </div>
             <div className="min-w-0">
-              <Card className="h-full">
-                <CardHeader>
-                  <CardTitle>My Rings</CardTitle>
-                  <CardDescription>
-                    Personal daily ring view will go here.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="flex min-h-[420px] items-center justify-center rounded-b-2xl border-t bg-slate-50 text-sm text-muted-foreground">
-                  My Rings panel coming next.
-                </CardContent>
-              </Card>
+              <MyRingsPanel
+                participants={derivedParticipants}
+                logs={dailyLogs}
+                selectedParticipantName={selectedParticipantName}
+              />
             </div>
           </div>
 
