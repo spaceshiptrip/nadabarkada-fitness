@@ -194,3 +194,136 @@ export async function updateParticipant(payload)
 
 - Added `DEFAULT_PROFILE_IMAGE` to the import from `@/lib/participants` — used by the amber profile setup callout to detect whether the selected participant still has the default avatar.
 - `getParticipantProfileImage` was already imported and continues to be used in the nav bar avatar.
+
+---
+
+## Phase 2 Work
+
+---
+
+### 10. Backend Date Off-by-One Bug Fix
+
+**Files changed:** `apps-script/Code.gs`
+
+**Root cause:** Google Sheets' `getValues()` returns date cells as JavaScript `Date` objects, not strings. When `getDailyLogs_()` returned `row.Date` directly, `JSON.stringify` serialized it as a UTC ISO string (e.g. `"2026-04-11T07:00:00.000Z"`). The frontend's `normalizeDateValue` then parsed this as April 11 instead of April 10 — every log came back dated one day in the future.
+
+This caused the MyRingsPanel Day view to show 0 points: the "today" filter compared against the local date (`2026-04-10`) but the log came back dated `2026-04-11`, so it was excluded.
+
+**Fix — added `formatDate_()` helper:**
+
+```js
+function formatDate_(value) {
+  if (!value) return '';
+  if (value instanceof Date) {
+    return Utilities.formatDate(value, Session.getScriptTimeZone(), 'yyyy-MM-dd');
+  }
+  return String(value).slice(0, 10);
+}
+```
+
+`Utilities.formatDate` with `Session.getScriptTimeZone()` formats the date in the script's local timezone (America/Los_Angeles) rather than UTC, producing the correct `YYYY-MM-DD` string.
+
+**Two call sites updated:**
+
+1. `getDailyLogs_()` — changed `date: row.Date` to `date: formatDate_(row.Date)` so all logs return properly formatted date strings.
+
+2. `upsertDailyLogRow_()` — the existing-row lookup compared `String(values[i][dateIndex])` (which would produce a JS Date `.toString()` like `"Fri Apr 10 2026 00:00:00 GMT+0000"`) against the payload's `'2026-04-10'` string, so upsert (overwrite existing entry for same participant+date) was silently broken and always appended a new row instead. Changed to `formatDate_(values[i][dateIndex])` to normalize both sides of the comparison.
+
+---
+
+### 11. `updateParticipant` Backend Action
+
+**Files changed:** `apps-script/Code.gs`
+
+Added the missing `updateParticipant` POST action to `doPost`. Previously the frontend `ProfilePanel` called `POST { action: 'updateParticipant', ...payload }` but the backend had no handler for it, so profile saves silently failed in live mode.
+
+**`doPost` handler added:**
+
+```js
+if (action === 'updateParticipant') {
+  const saved = updateParticipant_(payload);
+  return json_({ ok: true, data: saved, source: 'live' });
+}
+```
+
+**`updateParticipant_()` function added:**
+
+- Looks up the participant row by `UserId` column
+- Patches any provided fields: `name`, `deviceType`, `teamName`, `profileImage`, `baselineOverride`, `baselineActiveMinutes`, `baselineSteps`
+- Writes the updated row back with `sheet.getRange(...).setValues([row])`
+- Throws if `id` is missing or participant is not found
+- Returns the updated participant object
+
+---
+
+### 12. Centralized App Configuration in `config.js`
+
+**Files changed:** `src/lib/config.js`, `src/lib/api.js`, `src/components/DailyLogForm.jsx`, `src/App.jsx`
+
+Previously the app had three sources of truth for configuration:
+- Challenge dates in `src/lib/config.js`
+- `VITE_APP_SCRIPT_URL` env var only in `.env.local` and `.env.production`
+- Admin phone number `+18186539874` and SMS body hardcoded as string literals in 3 separate files
+
+**`src/lib/config.js` — expanded to include all app-level config:**
+
+```js
+// Google Apps Script "web app" URL — update this after each redeployment
+export const APP_SCRIPT_URL = 'https://script.google.com/macros/s/...';
+
+export const CHALLENGE_CONFIG = {
+  baselineStartDate: '2026-04-27',
+  challengeStartDate: '2026-05-04',
+  challengeEndDate: '2026-05-31',
+};
+
+export const ADMIN_PHONE_E164 = '+18186539874';
+export const ADMIN_SMS_BODY = 'Hi Jay, can you add me to the NadaBarkada Fitness Challenge? My name is [Your Name].';
+export const APP_TIMEZONE = 'America/Los_Angeles';
+```
+
+**`src/lib/api.js`** — URL resolution changed from env-var-only to env-var-with-config-fallback:
+
+```js
+import { APP_SCRIPT_URL as CONFIG_APP_SCRIPT_URL } from '@/lib/config';
+const APP_SCRIPT_URL = (import.meta.env.VITE_APP_SCRIPT_URL || CONFIG_APP_SCRIPT_URL || '').trim();
+```
+
+The env var still takes precedence (useful for local dev override), but `config.js` is now the canonical source.
+
+**`src/components/DailyLogForm.jsx`** and **`src/App.jsx`** — hardcoded SMS strings replaced:
+
+```js
+// Before (in 3 places across 2 files):
+href="sms:+18186539874?body=Hi Jay, can you add me..."
+
+// After:
+import { ADMIN_PHONE_E164, ADMIN_SMS_BODY } from '@/lib/config';
+href={`sms:${ADMIN_PHONE_E164}?body=${encodeURIComponent(ADMIN_SMS_BODY)}`}
+```
+
+Also added `encodeURIComponent` wrapping the SMS body, which was previously missing and could cause issues with spaces and special characters in the pre-filled message.
+
+**Redeployment workflow going forward:** update `APP_SCRIPT_URL` in `src/lib/config.js`, commit, push. No GitHub secrets or env files to hunt down.
+
+---
+
+### 13. Real Spreadsheet ID Committed to `Code.gs`
+
+**Files changed:** `apps-script/Code.gs`
+
+Replaced the placeholder `'REPLACE_WITH_YOUR_SPREADSHEET_ID'` with the actual Google Sheet ID `'1wqTMjXCBFA8PZg2L5Tg0WLZPAxO_TEantDIeNenRdZ4'`. The spreadsheet ID is not a credential or secret — it is just an identifier. Keeping a placeholder in the repo meant the checked-in code was not actually runnable without manual editing after every clone or re-read.
+
+---
+
+### 14. New Apps Script Deployment — URL Updated
+
+**Files changed:** `src/lib/config.js`, `.env.local`, `.env.production`
+
+After redeploying the Apps Script (Version 2, Apr 11 2026), the new web app URL was updated in all three locations:
+
+- `src/lib/config.js` — `APP_SCRIPT_URL` (canonical source, committed)
+- `.env.local` — `VITE_APP_SCRIPT_URL` (local dev override, gitignored)
+- `.env.production` — `VITE_APP_SCRIPT_URL` (used at build time for GitHub Pages deploy)
+
+New deployment ID: `AKfycbw21r9qqPHrekgAXG4OXIiJFsrnI6F_4Hml94fbKzYV40hV8MARWWRNMVDRoCYb9Pao1A`

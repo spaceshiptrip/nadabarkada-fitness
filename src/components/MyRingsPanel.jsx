@@ -5,6 +5,7 @@ import {
   calculateDailyPoints,
   calculateStepsImprovementBonus,
   getChallengeWeek,
+  SCHEDULE,
   getWeeklyDateRanges,
   isActiveDay,
 } from '@/lib/points';
@@ -150,6 +151,15 @@ export default function MyRingsPanel({ participants, logs, selectedParticipantId
         </CardContent>
       )}
       <CardContent className={`flex min-h-[420px] flex-col gap-5 ${!selectedParticipant ? 'hidden' : ''}`}>
+        {summary.isPreCompetition && (
+          <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+            <div className="font-semibold">Pre-competition updates</div>
+            <div className="mt-1">
+              Great job and keep it going. These entries help everyone get used to logging, but they do not officially count yet.
+            </div>
+          </div>
+        )}
+
         <div className="rounded-2xl border bg-slate-50 px-3 py-2 text-[11px] text-slate-600 sm:text-xs">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex flex-wrap gap-2">
@@ -456,18 +466,24 @@ function LedDot({ active, colorClass }) {
 function buildSummary(participant, logs, view) {
   const participantLogs = logs.filter((log) => matchesParticipant(participant, log));
   const today = new Date();
-  const todayIso = today.toISOString().slice(0, 10);
+  const todayIso = toLocalIsoDate(today);
   const currentWeek = getChallengeWeek(todayIso);
+  const isPreCompetition = todayIso < SCHEDULE.baselineStart;
   const currentMonth = today.getMonth();
   const currentYear = today.getFullYear();
-  const baselineActive = Number(participant.effectiveBaselineActiveMinutes || participant.baselineActiveMinutes || 0);
-  const baselineSteps = Number(participant.effectiveBaselineSteps || participant.baselineSteps || 0);
 
   if (view === 'day') {
-    const log = participantLogs.find((entry) => entry.date === todayIso) || null;
+    const log =
+      getLogForDate(participantLogs, todayIso) ||
+      [...participantLogs].sort((a, b) =>
+        String(b.date || '').localeCompare(String(a.date || ''))
+      )[0] ||
+      null;
+    const displayDate = log?.date?.slice(0, 10) || todayIso;
     const points = log ? Number(log.dailyPoints ?? calculateDailyPoints(log)) : 0;
     return {
-      periodLabel: formatDateLabel(todayIso),
+      isPreCompetition,
+      periodLabel: formatDateLabel(displayDate),
       totalPoints: points,
       pointsText: `${points} / 10`,
       activeText: `${Number(log?.activeMinutes || 0)} min`,
@@ -485,6 +501,54 @@ function buildSummary(participant, logs, view) {
   }
 
   if (view === 'week') {
+    if (isPreCompetition) {
+      const calendarWeek = getCalendarWeekRange(todayIso);
+      const days = Array.from({ length: 7 }, (_, index) => {
+        const date = addDays(calendarWeek.start, index);
+        const log = participantLogs.find((entry) => entry.date === date) || null;
+        return {
+          date,
+          shortDate: shortDate(date),
+          log,
+          points: log ? Number(log.dailyPoints ?? calculateDailyPoints(log)) : 0,
+          workoutBonus: Boolean(log?.workoutDone),
+          mobilityBonus: Boolean(log?.mobilityDone),
+        };
+      });
+      const weekLogs = participantLogs.filter((entry) => isDateInRange(entry.date, calendarWeek.start, calendarWeek.end));
+      const totalPoints = weekLogs.reduce((sum, entry) => sum + Number(entry.dailyPoints ?? calculateDailyPoints(entry)), 0);
+      const avgActiveMinutes = weekLogs.length
+        ? weekLogs.reduce((sum, entry) => sum + Number(entry.activeMinutes || 0), 0) / weekLogs.length
+        : 0;
+      const avgSteps = weekLogs.length
+        ? weekLogs.reduce((sum, entry) => sum + Number(entry.steps || 0), 0) / weekLogs.length
+        : 0;
+
+      return {
+        isPreCompetition: true,
+        periodLabel: 'Pre-competition week',
+        totalPoints,
+        pointsText: `${totalPoints} pts`,
+        activeText: `${Math.round(avgActiveMinutes)} avg`,
+        stepsText: `${formatNumber(Math.round(avgSteps))} avg`,
+        pointsProgress: totalPoints / 70,
+        activeProgress: avgActiveMinutes / 60,
+        stepsProgress: avgSteps / 10000,
+        workoutBonus: weekLogs.some((entry) => entry.workoutDone),
+        mobilityBonus: weekLogs.some((entry) => entry.mobilityDone),
+        consistencyBonus: false,
+        improvementBonus: false,
+        personalBestBonus: false,
+        consistencyPoints: 0,
+        improvementPoints: 0,
+        personalBestPoints: 0,
+        consistencyDetail: 'Pre-competition only',
+        improvementDetail: 'Pre-competition only',
+        personalBestDetail: 'Pre-competition only',
+        days,
+      };
+    }
+
     const currentWeekRange = getWeeklyDateRanges()[Math.max(currentWeek, 0)];
     const days = currentWeekRange
       ? Array.from({ length: 7 }, (_, index) => {
@@ -511,6 +575,7 @@ function buildSummary(participant, logs, view) {
       : 0;
 
     return {
+      isPreCompetition: false,
       periodLabel: getWeeklyLabel(currentWeek),
       totalPoints: standing.weeklyTotal,
       pointsText: `${standing.weeklyTotal} pts`,
@@ -534,15 +599,15 @@ function buildSummary(participant, logs, view) {
     };
   }
 
-  const monthLogs = participantLogs.filter((entry) => {
-    const date = new Date(`${entry.date}T12:00:00`);
-    return date.getMonth() === currentMonth && date.getFullYear() === currentYear;
-  });
+  const monthKey = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}`;
+  const monthLogs = participantLogs.filter((entry) => String(entry.date || '').startsWith(monthKey));
   const scoredMonthLogs = monthLogs.filter((entry) => Number(entry.challengeWeek) >= 1);
   const monthWeeks = [...new Set(scoredMonthLogs.map((entry) => Number(entry.challengeWeek)))];
-  const weeklyStandings = monthWeeks.map((week) => getWeeklyStanding(participant, logs, week));
+  const weeklyStandings = isPreCompetition ? [] : monthWeeks.map((week) => getWeeklyStanding(participant, logs, week));
   const monthCalendarWeeks = buildMonthCalendarWeeks(participantLogs, logs, participant, currentYear, currentMonth);
-  const totalMonthPoints = weeklyStandings.reduce((sum, standing) => sum + standing.weeklyTotal, 0);
+  const totalMonthPoints = isPreCompetition
+    ? monthLogs.reduce((sum, entry) => sum + Number(entry.dailyPoints ?? calculateDailyPoints(entry)), 0)
+    : weeklyStandings.reduce((sum, standing) => sum + standing.weeklyTotal, 0);
   const avgActiveMinutes = monthLogs.length
     ? monthLogs.reduce((sum, entry) => sum + Number(entry.activeMinutes || 0), 0) / monthLogs.length
     : 0;
@@ -552,6 +617,7 @@ function buildSummary(participant, logs, view) {
   const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
 
   return {
+    isPreCompetition,
     periodLabel: today.toLocaleDateString(undefined, { month: 'long', year: 'numeric' }),
     totalPoints: totalMonthPoints,
     pointsText: `${totalMonthPoints} pts`,
@@ -571,6 +637,7 @@ function buildSummary(participant, logs, view) {
 
 function buildEmptySummary() {
   return {
+    isPreCompetition: false,
     periodLabel: 'No participant selected',
     totalPoints: 0,
     pointsText: '0 / 10',
@@ -620,9 +687,9 @@ function getWeeklyStanding(participant, logs, selectedWeek) {
     : 0;
   const baselineActive = Number(participant.effectiveBaselineActiveMinutes || participant.baselineActiveMinutes || 0);
   const baselineSteps = Number(participant.effectiveBaselineSteps || participant.baselineSteps || 0);
-  const improvementBonus =
-    calculateActiveMinutesImprovementBonus(baselineActive, avgActiveMinutes) +
-    calculateStepsImprovementBonus(baselineSteps, avgSteps);
+  const activeMinutesBonus = calculateActiveMinutesImprovementBonus(baselineActive, avgActiveMinutes);
+  const stepsBonus = calculateStepsImprovementBonus(baselineSteps, avgSteps);
+  const improvementBonus = activeMinutesBonus + stepsBonus;
 
   let priorBest = 0;
   for (let week = 1; week < selectedWeek; week += 1) {
@@ -687,10 +754,38 @@ function getWeeklyLabel(week) {
   return range ? range.label : 'Current week';
 }
 
+function getCalendarWeekRange(dateStr) {
+  const date = new Date(`${dateStr}T12:00:00`);
+  const mondayOffset = (date.getDay() + 6) % 7;
+  const start = new Date(date);
+  start.setDate(date.getDate() - mondayOffset);
+  const end = new Date(start);
+  end.setDate(start.getDate() + 6);
+
+  return {
+    start: toLocalIsoDate(start),
+    end: toLocalIsoDate(end),
+  };
+}
+
+function isDateInRange(dateStr, start, end) {
+  return dateStr >= start && dateStr <= end;
+}
+
+function getLogForDate(logs, date) {
+  return logs.find((entry) => String(entry.date || '').slice(0, 10) === date) || null;
+}
+
+function getLatestLogInRange(logs, start, end) {
+  return logs
+    .filter((entry) => isDateInRange(String(entry.date || ''), start, end))
+    .sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')))[0] || null;
+}
+
 function addDays(dateStr, amount) {
   const date = new Date(`${dateStr}T12:00:00`);
   date.setDate(date.getDate() + amount);
-  return date.toISOString().slice(0, 10);
+  return toLocalIsoDate(date);
 }
 
 function shortDate(dateStr) {
@@ -716,7 +811,7 @@ function buildMonthCalendarWeeks(participantLogs, allLogs, participant, year, mo
     const weekDates = [];
 
     for (let index = 0; index < 7; index += 1) {
-      const date = cursor.toISOString().slice(0, 10);
+      const date = toLocalIsoDate(cursor);
       const inMonth = cursor.getMonth() === month;
       if (inMonth) {
         const log = participantLogs.find((entry) => entry.date === date) || null;
@@ -758,4 +853,11 @@ function buildMonthCalendarWeeks(participantLogs, allLogs, participant, year, mo
   }
 
   return weeks;
+}
+
+function toLocalIsoDate(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }

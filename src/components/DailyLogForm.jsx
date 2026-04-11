@@ -12,12 +12,19 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { getParticipantProfileImage } from '@/lib/participants';
+import { ADMIN_PHONE_E164, ADMIN_SMS_BODY } from '@/lib/config';
 
-const SMS_HREF =
-  'sms:+18186539874?body=Hi Jay, can you add me to the NadaBarkada Fitness Challenge? My name is [Your Name].';
+const SMS_HREF = `sms:${ADMIN_PHONE_E164}?body=${encodeURIComponent(ADMIN_SMS_BODY)}`;
 
 function todayIso() {
-  return new Date().toISOString().slice(0, 10);
+  return toLocalIsoDate(new Date());
+}
+
+function toLocalIsoDate(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
 
 const initialState = {

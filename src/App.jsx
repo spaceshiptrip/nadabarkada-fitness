@@ -17,6 +17,7 @@ import {
   updateParticipant,
 } from '@/lib/api';
 import { DEFAULT_PROFILE_IMAGE, getParticipantProfileImage, mergeParticipantsWithBaselines } from '@/lib/participants';
+import { ADMIN_PHONE_E164, ADMIN_SMS_BODY } from '@/lib/config';
 
 export default function App() {
   const [participants, setParticipants] = useState([]);
@@ -214,7 +215,7 @@ export default function App() {
                   ))}
                   <div className="mt-1 border-t border-white/15 pt-1">
                     <a
-                      href="sms:+18186539874?body=Hi Jay, can you add me to the NadaBarkada Fitness Challenge? My name is [Your Name]."
+                      href={`sms:${ADMIN_PHONE_E164}?body=${encodeURIComponent(ADMIN_SMS_BODY)}`}
                       className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-xs text-blue-200 hover:bg-white/10"
                     >
                       <span>Not listed? Text Jay to register</span>

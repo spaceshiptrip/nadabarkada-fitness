@@ -1,4 +1,4 @@
-const SPREADSHEET_ID = 'REPLACE_WITH_YOUR_SPREADSHEET_ID';
+const SPREADSHEET_ID = '1wqTMjXCBFA8PZg2L5Tg0WLZPAxO_TEantDIeNenRdZ4';
 const PARTICIPANTS_SHEET = 'Participants';
 const DAILY_LOGS_SHEET = 'DailyLogs';
 const PARTICIPANT_HEADERS = ['UserId', 'Name', 'DeviceType', 'TeamName', 'BaselineActiveMinutes', 'BaselineSteps', 'Active', 'CreatedAt', 'ProfileImage', 'BaselineOverride', 'PhoneNumber', 'Pin'];
@@ -39,6 +39,11 @@ function doPost(e) {
 
     if (action === 'logDailyEntry') {
       const saved = addDailyLog_(payload);
+      return json_({ ok: true, data: saved, source: 'live' });
+    }
+
+    if (action === 'updateParticipant') {
+      const saved = updateParticipant_(payload);
       return json_({ ok: true, data: saved, source: 'live' });
     }
 
@@ -168,7 +173,7 @@ function getDailyLogs_() {
     .filter(function(row) { return String(row.Name || '').trim() !== ''; })
     .map(function(row) {
       return {
-        date: row.Date,
+        date: formatDate_(row.Date),
         participantId: row.ParticipantId || '',
         name: row.Name,
         activeMinutes: number_(row.ActiveMinutes),
@@ -474,7 +479,7 @@ function upsertDailyLogRow_(sheet, participantId, date, rowValues) {
 
   for (var i = 1; i < values.length; i += 1) {
     var existingParticipantId = String(values[i][participantIdIndex] || '').trim();
-    var existingDate = String(values[i][dateIndex] || '').trim();
+    var existingDate = formatDate_(values[i][dateIndex]);
 
     if (existingParticipantId === String(participantId).trim() && existingDate === String(date).trim()) {
       sheet.getRange(i + 1, 1, 1, rowValues.length).setValues([rowValues]);
@@ -555,4 +560,60 @@ function sum_(values) {
 function average_(values) {
   if (!values || !values.length) return 0;
   return sum_(values) / values.length;
+}
+
+function formatDate_(value) {
+  if (!value) return '';
+  if (value instanceof Date) {
+    return Utilities.formatDate(value, Session.getScriptTimeZone(), 'yyyy-MM-dd');
+  }
+  return String(value).slice(0, 10);
+}
+
+function updateParticipant_(payload) {
+  const sheet = getSheet_(PARTICIPANTS_SHEET);
+  ensureHeaders_(sheet, PARTICIPANT_HEADERS);
+  const participantId = String(payload.id || '').trim();
+  if (!participantId) throw new Error('Participant id is required.');
+
+  const values = sheet.getDataRange().getValues();
+  if (!values || values.length < 2) throw new Error('Participant not found.');
+
+  const headers = values[0];
+  const userIdIndex = headers.indexOf('UserId');
+
+  for (var i = 1; i < values.length; i += 1) {
+    if (String(values[i][userIdIndex] || '').trim() === participantId) {
+      const row = values[i];
+      const fieldMap = {
+        Name: headers.indexOf('Name'),
+        DeviceType: headers.indexOf('DeviceType'),
+        TeamName: headers.indexOf('TeamName'),
+        ProfileImage: headers.indexOf('ProfileImage'),
+        BaselineOverride: headers.indexOf('BaselineOverride'),
+        BaselineActiveMinutes: headers.indexOf('BaselineActiveMinutes'),
+        BaselineSteps: headers.indexOf('BaselineSteps'),
+      };
+
+      if (payload.name !== undefined) row[fieldMap.Name] = payload.name;
+      if (payload.deviceType !== undefined) row[fieldMap.DeviceType] = payload.deviceType;
+      if (payload.teamName !== undefined) row[fieldMap.TeamName] = payload.teamName;
+      if (payload.profileImage !== undefined) row[fieldMap.ProfileImage] = payload.profileImage;
+      if (payload.baselineOverride !== undefined) row[fieldMap.BaselineOverride] = toBool_(payload.baselineOverride);
+      if (payload.baselineActiveMinutes !== undefined) row[fieldMap.BaselineActiveMinutes] = number_(payload.baselineActiveMinutes);
+      if (payload.baselineSteps !== undefined) row[fieldMap.BaselineSteps] = number_(payload.baselineSteps);
+
+      sheet.getRange(i + 1, 1, 1, row.length).setValues([row]);
+
+      return {
+        id: participantId,
+        name: row[fieldMap.Name],
+        deviceType: row[fieldMap.DeviceType],
+        teamName: row[fieldMap.TeamName],
+        profileImage: row[fieldMap.ProfileImage] || '',
+      };
+    }
+  }
+
+  throw new Error('Participant not found: ' + participantId);
 }
