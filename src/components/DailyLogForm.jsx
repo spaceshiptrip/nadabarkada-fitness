@@ -23,7 +23,7 @@ function todayIso() {
 const initialState = {
   date: todayIso(),
   activeMinutes: '',
-  workoutDone: true,
+  workoutDone: false,
   steps: '',
   mobilityDone: false,
   notes: '',
