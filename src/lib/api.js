@@ -5,8 +5,9 @@ import {
   getParticipantKey,
   normalizeParticipant,
 } from '@/lib/participants';
+import { APP_SCRIPT_URL as CONFIG_APP_SCRIPT_URL } from '@/lib/config';
 
-const APP_SCRIPT_URL = import.meta.env.VITE_APP_SCRIPT_URL?.trim();
+const APP_SCRIPT_URL = (import.meta.env.VITE_APP_SCRIPT_URL || CONFIG_APP_SCRIPT_URL || '').trim();
 const MOCK_PARTICIPANTS_KEY = 'fitness-challenge:participants';
 const MOCK_DAILY_LOGS_KEY = 'fitness-challenge:daily-logs';
 
@@ -60,6 +61,65 @@ function withComputedDailyPoints(entry) {
     challengeWeek: getChallengeWeek(entry.date),
     dailyPoints: calculateDailyPoints(entry),
   };
+}
+
+function normalizeDateValue(value) {
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+  if (/^\d{4}-\d{2}-\d{2}T/.test(raw)) return raw.slice(0, 10);
+
+  const parsed = new Date(raw);
+  if (Number.isNaN(parsed.getTime())) return raw;
+
+  const year = parsed.getFullYear();
+  const month = String(parsed.getMonth() + 1).padStart(2, '0');
+  const day = String(parsed.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function normalizeDailyLog(entry) {
+  const normalizedDate = normalizeDateValue(entry?.date);
+  const workoutDone =
+    entry?.workoutDone === true || String(entry?.workoutDone || '').toLowerCase() === 'true';
+  const mobilityDone =
+    entry?.mobilityDone === true || String(entry?.mobilityDone || '').toLowerCase() === 'true';
+  const activeMinutes = Number(entry?.activeMinutes || 0);
+  const steps = Number(entry?.steps || 0);
+
+  return {
+    ...entry,
+    date: normalizedDate,
+    participantId: String(entry?.participantId || ''),
+    name: String(entry?.name || ''),
+    activeMinutes,
+    workoutDone,
+    steps,
+    mobilityDone,
+    notes: String(entry?.notes || ''),
+    dailyPoints: Number(
+      entry?.dailyPoints ??
+      calculateDailyPoints({
+        activeMinutes,
+        workoutDone,
+        steps,
+        mobilityDone,
+      })
+    ),
+    challengeWeek: Number(entry?.challengeWeek ?? getChallengeWeek(normalizedDate)),
+  };
+}
+
+function dedupeDailyLogs(entries) {
+  const byKey = new Map();
+
+  entries.forEach((entry) => {
+    const normalized = normalizeDailyLog(entry);
+    const key = `${normalized.participantId}::${normalized.date}`;
+    byKey.set(key, normalized);
+  });
+
+  return [...byKey.values()];
 }
 
 async function fetchJson(url) {
@@ -151,7 +211,11 @@ export async function getDailyLogs() {
   if (!APP_SCRIPT_URL) {
     return { ok: true, data: loadMockDailyLogs(), source: 'mock' };
   }
-  return fetchJson(`${APP_SCRIPT_URL}?action=dailyLogs`);
+  const response = await fetchJson(`${APP_SCRIPT_URL}?action=dailyLogs`);
+  return {
+    ...response,
+    data: dedupeDailyLogs(response.data || []),
+  };
 }
 
 export async function getWeeklySummary() {
@@ -163,6 +227,18 @@ export async function getWeeklySummary() {
     };
   }
   return fetchJson(`${APP_SCRIPT_URL}?action=weeklySummary`);
+}
+
+export async function updateParticipant(payload) {
+  if (!APP_SCRIPT_URL) {
+    const participants = loadMockParticipants();
+    const existing = participants.find((p) => p.id === payload.id);
+    if (!existing) return { ok: false, error: 'Participant not found.' };
+    const updated = normalizeParticipant({ ...existing, ...payload });
+    setStoredJson(MOCK_PARTICIPANTS_KEY, participants.map((p) => (p.id === payload.id ? updated : p)));
+    return { ok: true, data: updated, source: 'mock' };
+  }
+  return postJson({ action: 'updateParticipant', ...payload });
 }
 
 export async function logDailyEntry(payload) {

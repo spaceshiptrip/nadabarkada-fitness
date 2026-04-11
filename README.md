@@ -258,6 +258,69 @@ High level:
 3. Copy `apps-script/Code.gs` and `apps-script/appsscript.json` into Apps Script.
 4. Set the spreadsheet ID in `Code.gs`.
 5. Deploy as a web app.
+
+## TODO
+
+### Phase 1: Simple participant flow
+
+- Skip full participant authentication at launch.
+- Pre-create participant records directly in the backend sheet.
+- Generate and keep a stable `ParticipantId` for each participant.
+- Make the top header avatar/name area the main participant selector dropdown.
+- Persist the selected participant in `localStorage` so the app restores that participant on refresh.
+- If no participant is stored in `localStorage`, keep the app in an unselected state on load.
+- Tell participants to select themselves from the participant list in the app.
+- Let participants log daily activity without logging in.
+- If no participant is selected, disable all `My Rings` controls and views.
+- If no participant is selected, disable all `Daily Log Entry` inputs except `Select participant`.
+- If no participant is selected, still allow viewing the leaderboard and weekly leaderboard rings.
+- Add a visible callout that points the user to `Select participant` when nothing is selected.
+- Add a `Not listed? Request registration` option near the participant selector instead of self-service participant creation.
+- Make that option open the user's SMS app with a prefilled message to Jay, for example:
+  - `Hi Jay, can you register me for the fitness challenge? My name is [Your Name].`
+- On mobile, use an `sms:` link with a prefilled body.
+- On desktop, also show the phone number and a copyable fallback in case SMS deep linking is not available.
+- Create a Profile/Settings panel so a selected participant can update their displayed name and profile picture.
+- Once a participant is selected, repurpose the current admin/profile area into a participant-facing Profile panel.
+- Make sure profile changes do not change the participant's stable `ParticipantId`.
+- Keep phone number and PIN fields in the backend schema for future use, even if login is not enabled yet.
+- If needed, hide or remove the in-app Admin Panel for Phase 1 and manage participant creation directly in the sheet/backend.
+
+### Phase 1 reasoning
+
+- The challenge is honor-system based, so the biggest UX risk is friction, not abuse.
+- Requiring full login on day one may reduce participation more than it improves control.
+- Keeping participant creation admin-controlled preserves clean participant records and stable `ParticipantId` values.
+- Avoiding self-service registration in Phase 1 reduces duplicate users, inconsistent names, and identity cleanup work.
+- A header participant selector with `localStorage` keeps the app feeling personal without making users log in every time.
+- A `Request registration` SMS flow gives unregistered users a clear path forward without exposing account creation in the app.
+- This keeps Phase 1 simple while preserving a clean upgrade path to Phase 2 login with phone number and PIN.
+
+### Phase 1.5: Lightweight guardrails
+
+- Decide whether profile editing should require a lightweight check, or remain honor-system only.
+- Consider remembering the last selected participant locally on the device for convenience.
+- Keep all log joins and participant identity keyed by `ParticipantId`, not display name.
+- Allow the admin to seed participant display name, phone number, and PIN in the backend ahead of future auth work.
+
+### Phase 2: Authentication and roles
+
+- Create a login screen that authenticates with phone number and PIN.
+- Add a `Role` field in the sheet/backend so users can be either `admin` or `participant`.
+- If the logged-in user role is `admin`, show the Admin Panel.
+- If the logged-in user role is `participant`, hide the Admin Panel.
+- Users should log in with phone number and PIN, while the UI shows their name and profile picture after login.
+- Allow a logged-in user to change their login phone number and PIN from their profile/settings area.
+- Changing phone number or PIN should update the stored backend hashes without changing the participant's stable `ParticipantId`.
+
+### Backend auth workflow
+
+- Add an admin workflow to seed a participant’s display name, phone number, and PIN.
+- In the backend, generate the participant ID, hash the phone number for login lookup, and hash/obfuscate the PIN after the initial seed flow.
+- Follow the existing Google Apps Script pattern in `../pickle.nadabarkada.com/pickle/backend/google-apps-script/Code.gs`:
+  - run `setPinSalt_()` once to create the script salt
+  - use `generateMyHash()` as the reference pattern for producing the stored PIN hash
+- Add a dedicated admin migration/helper method in this project’s `Code.gs` to hash or obfuscate seeded phone/PIN credentials after the initial seed pass.
 6. Put the deployment URL into `VITE_APP_SCRIPT_URL`.
 
 ## Workflow

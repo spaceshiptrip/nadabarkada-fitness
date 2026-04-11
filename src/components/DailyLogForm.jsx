@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { ClipboardCheck } from 'lucide-react';
+import { ClipboardCheck, MessageSquare } from 'lucide-react';
 import {
   calculateActivityPoints,
   calculateWorkoutPoints,
@@ -12,38 +12,35 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { getParticipantProfileImage } from '@/lib/participants';
+import { ADMIN_PHONE_E164, ADMIN_SMS_BODY } from '@/lib/config';
+
+const SMS_HREF = `sms:${ADMIN_PHONE_E164}?body=${encodeURIComponent(ADMIN_SMS_BODY)}`;
 
 function todayIso() {
-  return new Date().toISOString().slice(0, 10);
+  return toLocalIsoDate(new Date());
+}
+
+function toLocalIsoDate(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
 
 const initialState = {
   date: todayIso(),
-  name: '',
   activeMinutes: '',
-  workoutDone: true,
+  workoutDone: false,
   steps: '',
   mobilityDone: false,
   notes: '',
 };
 
-export default function DailyLogForm({
-  participants,
-  onSubmit,
-  loading,
-  selectedParticipantId,
-  onSelectedParticipantChange,
-  confirmedParticipantId,
-}) {
+export default function DailyLogForm({ participant, onSubmit, loading, confirmedParticipantId }) {
   const [form, setForm] = useState(initialState);
 
-  const participantValue = selectedParticipantId ?? form.name;
-  const selectedParticipant = participants.find((participant) => participant.id === participantValue) || null;
-  const confirmedParticipant =
-    participants.find((participant) => participant.id === confirmedParticipantId) || null;
-  const showConfirmedTitle = Boolean(
-    confirmedParticipant && selectedParticipant && confirmedParticipant.id === selectedParticipant.id
-  );
+  const showConfirmedTitle =
+    Boolean(participant && confirmedParticipantId && participant.id === confirmedParticipantId);
 
   const breakdown = useMemo(() => {
     const activity = calculateActivityPoints(Number(form.activeMinutes || 0));
@@ -58,24 +55,18 @@ export default function DailyLogForm({
 
   const submit = async (event) => {
     event.preventDefault();
-    if (!participantValue) return;
-
+    if (!participant) return;
     await onSubmit({
       date: form.date,
-      participantId: selectedParticipant?.id || '',
-      name: selectedParticipant?.name || '',
+      participantId: participant.id,
+      name: participant.name,
       activeMinutes: Number(form.activeMinutes || 0),
       workoutDone: form.workoutDone,
       steps: Number(form.steps || 0),
       mobilityDone: form.mobilityDone,
       notes: form.notes.trim(),
     });
-
-    setForm((prev) => ({
-      ...initialState,
-      date: prev.date,
-      name: participantValue,
-    }));
+    setForm((prev) => ({ ...initialState, date: prev.date }));
   };
 
   const breakdownRows = [
@@ -90,29 +81,54 @@ export default function DailyLogForm({
       <CardHeader>
         <div className="flex items-center gap-3">
           <img
-            src={selectedParticipant ? getParticipantProfileImage(selectedParticipant.profileImage) : getParticipantProfileImage('')}
-            alt={selectedParticipant?.name || 'Participant'}
-            className="h-12 w-12 rounded-full border object-cover"
+            src={getParticipantProfileImage(participant?.profileImage)}
+            alt={participant?.name || 'Participant'}
+            className="h-12 w-12 flex-shrink-0 rounded-full border object-cover"
           />
-          <div>
+          <div className="min-w-0">
             <CardTitle className="flex items-center gap-2">
               <ClipboardCheck className="h-5 w-5" />
-              {selectedParticipant
-                ? `Daily log entry for ${selectedParticipant.name}${showConfirmedTitle ? `, ID: ${confirmedParticipant.id}` : ''}`
+              {participant
+                ? `Daily log entry for ${participant.name}${showConfirmedTitle ? ' · confirmed' : ''}`
                 : 'Daily log entry'}
             </CardTitle>
           </div>
         </div>
         <CardDescription>
-          {selectedParticipant
-            ? 'Enter daily stats and preview the daily score before submitting. Week 0 entries build each participant&apos;s baseline, and they do not need to log every day.'
-            : 'Select a participant to log activity.'}
+          {participant
+            ? 'Enter daily stats and preview your score before submitting.'
+            : 'Select your name in the header to start logging.'}
         </CardDescription>
       </CardHeader>
-      <CardContent className="grid gap-6 xl:grid-cols-[1.2fr,0.8fr]">
-        <form onSubmit={submit} className="grid min-w-0 gap-4 rounded-2xl border bg-slate-50 p-4">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="grid min-w-0 gap-2">
+
+      {!participant ? (
+        <CardContent>
+          <div className="grid gap-4 rounded-2xl border bg-slate-50 p-6 text-center">
+            <p className="text-sm text-slate-600">
+              Select your name from the header at the top to start logging your activity.
+            </p>
+            <div className="rounded-2xl border bg-white p-4">
+              <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">
+                Not registered yet?
+              </p>
+              <p className="mt-1 text-sm text-slate-600">Text Jay to get added to the challenge.</p>
+              <div className="mt-3 flex flex-col items-center gap-2">
+                <a
+                  href={SMS_HREF}
+                  className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary/90"
+                >
+                  <MessageSquare className="h-4 w-4" />
+                  Text Jay to join
+                </a>
+                <p className="text-xs text-muted-foreground">(818) 653-9874</p>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      ) : (
+        <CardContent className="grid gap-6 xl:grid-cols-[1.2fr,0.8fr]">
+          <form onSubmit={submit} className="grid min-w-0 gap-4 rounded-2xl border bg-slate-50 p-4">
+            <div className="grid gap-2">
               <Label htmlFor="log-date">Date</Label>
               <Input
                 id="log-date"
@@ -123,133 +139,115 @@ export default function DailyLogForm({
               />
             </div>
 
-            <div className="grid min-w-0 gap-2">
-              <Label htmlFor="log-name">Participant</Label>
-              <select
-                id="log-name"
-                className="h-10 min-w-0 w-full rounded-xl border bg-white px-3 text-sm"
-                value={participantValue}
-                onChange={(e) => {
-                  const nextParticipantId = e.target.value;
-                  setForm((prev) => ({ ...prev, name: nextParticipantId }));
-                  onSelectedParticipantChange?.(nextParticipantId);
-                }}
-              >
-                <option value="">Select participant</option>
-                {participants.map((participant) => (
-                  <option key={participant.id || participant.name} value={participant.id || participant.name}>
-                    {participant.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="grid min-w-0 gap-2">
-              <Label htmlFor="active-minutes">Active minutes</Label>
-              <Input
-                id="active-minutes"
-                type="number"
-                min="0"
-                value={form.activeMinutes}
-                onChange={(e) => setForm((prev) => ({ ...prev, activeMinutes: e.target.value }))}
-                placeholder="e.g. 32"
-              />
-            </div>
-
-            <div className="grid min-w-0 gap-2">
-              <Label htmlFor="steps">Steps</Label>
-              <Input
-                id="steps"
-                type="number"
-                min="0"
-                value={form.steps}
-                onChange={(e) => setForm((prev) => ({ ...prev, steps: e.target.value }))}
-                placeholder="e.g. 9800"
-              />
-            </div>
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <label className="flex items-center gap-3 rounded-xl border bg-white px-3 py-3 text-sm">
-              <input
-                type="checkbox"
-                checked={form.workoutDone}
-                onChange={(e) => setForm((prev) => ({ ...prev, workoutDone: e.target.checked }))}
-              />
-              Workout session (20+ min)
-            </label>
-
-            <label className="flex items-center gap-3 rounded-xl border bg-white px-3 py-3 text-sm">
-              <input
-                type="checkbox"
-                checked={form.mobilityDone}
-                onChange={(e) => setForm((prev) => ({ ...prev, mobilityDone: e.target.checked }))}
-              />
-              Self-Care (5+ min)
-            </label>
-          </div>
-
-          <div className="grid gap-2">
-            <Label htmlFor="notes">Notes</Label>
-            <textarea
-              id="notes"
-              className="min-h-24 rounded-xl border bg-white px-3 py-2 text-sm"
-              value={form.notes}
-              onChange={(e) => setForm((prev) => ({ ...prev, notes: e.target.value }))}
-              placeholder="Optional notes"
-            />
-          </div>
-
-          <Button type="submit" disabled={loading || participants.length === 0}>
-            {loading ? 'Saving...' : 'Submit daily log'}
-          </Button>
-        </form>
-
-        <div className="space-y-4 rounded-2xl border bg-white p-4">
-          <div>
-            <div className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-              Score preview
-            </div>
-            <div className="mt-1 flex items-baseline gap-1.5">
-              <span className="text-5xl font-bold tabular-nums text-primary">
-                {breakdown.total}
-              </span>
-              <span className="text-sm text-muted-foreground">/ 10 pts</span>
-            </div>
-            {breakdown.total === 10 && (
-              <div className="mt-1 text-xs font-medium text-accent">Daily cap reached</div>
-            )}
-          </div>
-
-          <div className="space-y-1.5 border-t pt-3">
-            {breakdownRows.map(({ label, value, max }) => (
-              <div key={label} className="flex items-center justify-between text-sm">
-                <span className={value > 0 ? 'text-slate-700' : 'text-muted-foreground'}>
-                  {label}
-                </span>
-                <span className={'tabular-nums font-semibold ' + (value > 0 ? 'text-primary' : 'text-muted-foreground')}>
-                  {value > 0 ? '+' + value : '0 / ' + max}
-                </span>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="grid min-w-0 gap-2">
+                <Label htmlFor="active-minutes">Active minutes</Label>
+                <Input
+                  id="active-minutes"
+                  type="number"
+                  min="0"
+                  value={form.activeMinutes}
+                  onChange={(e) => setForm((prev) => ({ ...prev, activeMinutes: e.target.value }))}
+                  placeholder="e.g. 32"
+                />
               </div>
-            ))}
-          </div>
+              <div className="grid min-w-0 gap-2">
+                <Label htmlFor="steps">Steps</Label>
+                <Input
+                  id="steps"
+                  type="number"
+                  min="0"
+                  value={form.steps}
+                  onChange={(e) => setForm((prev) => ({ ...prev, steps: e.target.value }))}
+                  placeholder="e.g. 9800"
+                />
+              </div>
+            </div>
 
-          <div className="rounded-xl border bg-slate-50 px-3 py-2.5">
-            <div className="text-xs font-semibold uppercase tracking-widest text-slate-500">
-              Challenge week
+            <div className="grid gap-4 sm:grid-cols-2">
+              <label className="flex items-center gap-3 rounded-xl border bg-white px-3 py-3 text-sm">
+                <input
+                  type="checkbox"
+                  checked={form.workoutDone}
+                  onChange={(e) => setForm((prev) => ({ ...prev, workoutDone: e.target.checked }))}
+                />
+                Workout session (20+ min)
+              </label>
+              <label className="flex items-center gap-3 rounded-xl border bg-white px-3 py-3 text-sm">
+                <input
+                  type="checkbox"
+                  checked={form.mobilityDone}
+                  onChange={(e) => setForm((prev) => ({ ...prev, mobilityDone: e.target.checked }))}
+                />
+                Self-Care (5+ min)
+              </label>
             </div>
-            <div className="mt-0.5 text-sm font-medium text-slate-700">
-              {challengeWeek === 0
-                ? 'Week 0 — Baseline'
-                : challengeWeek > 0
-                ? 'Week ' + challengeWeek
-                : 'Before challenge start'}
+
+            <div className="grid gap-2">
+              <Label htmlFor="notes">Notes</Label>
+              <textarea
+                id="notes"
+                className="min-h-24 rounded-xl border bg-white px-3 py-2 text-sm"
+                value={form.notes}
+                onChange={(e) => setForm((prev) => ({ ...prev, notes: e.target.value }))}
+                placeholder="Optional notes"
+              />
+            </div>
+
+            <Button type="submit" disabled={loading}>
+              {loading ? 'Saving...' : 'Submit daily log'}
+            </Button>
+          </form>
+
+          <div className="space-y-4 rounded-2xl border bg-white p-4">
+            <div>
+              <div className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                Score preview
+              </div>
+              <div className="mt-1 flex items-baseline gap-1.5">
+                <span className="text-5xl font-bold tabular-nums text-primary">
+                  {breakdown.total}
+                </span>
+                <span className="text-sm text-muted-foreground">/ 10 pts</span>
+              </div>
+              {breakdown.total === 10 && (
+                <div className="mt-1 text-xs font-medium text-accent">Daily cap reached</div>
+              )}
+            </div>
+
+            <div className="space-y-1.5 border-t pt-3">
+              {breakdownRows.map(({ label, value, max }) => (
+                <div key={label} className="flex items-center justify-between text-sm">
+                  <span className={value > 0 ? 'text-slate-700' : 'text-muted-foreground'}>
+                    {label}
+                  </span>
+                  <span
+                    className={
+                      'tabular-nums font-semibold ' +
+                      (value > 0 ? 'text-primary' : 'text-muted-foreground')
+                    }
+                  >
+                    {value > 0 ? '+' + value : '0 / ' + max}
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            <div className="rounded-xl border bg-slate-50 px-3 py-2.5">
+              <div className="text-xs font-semibold uppercase tracking-widest text-slate-500">
+                Challenge week
+              </div>
+              <div className="mt-0.5 text-sm font-medium text-slate-700">
+                {challengeWeek === 0
+                  ? 'Week 0 — Baseline'
+                  : challengeWeek > 0
+                  ? 'Week ' + challengeWeek
+                  : 'Before challenge start'}
+              </div>
             </div>
           </div>
-        </div>
-      </CardContent>
+        </CardContent>
+      )}
     </Card>
   );
 }
