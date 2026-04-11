@@ -165,6 +165,18 @@ export async function getWeeklySummary() {
   return fetchJson(`${APP_SCRIPT_URL}?action=weeklySummary`);
 }
 
+export async function updateParticipant(payload) {
+  if (!APP_SCRIPT_URL) {
+    const participants = loadMockParticipants();
+    const existing = participants.find((p) => p.id === payload.id);
+    if (!existing) return { ok: false, error: 'Participant not found.' };
+    const updated = normalizeParticipant({ ...existing, ...payload });
+    setStoredJson(MOCK_PARTICIPANTS_KEY, participants.map((p) => (p.id === payload.id ? updated : p)));
+    return { ok: true, data: updated, source: 'mock' };
+  }
+  return postJson({ action: 'updateParticipant', ...payload });
+}
+
 export async function logDailyEntry(payload) {
   if (!APP_SCRIPT_URL) {
     const nextEntry = withComputedDailyPoints(payload);

@@ -135,12 +135,21 @@ export default function MyRingsPanel({ participants, logs, selectedParticipantId
             <CardDescription>
               {selectedParticipant
                 ? `Current ${view} view for ${selectedParticipant.name}.`
-                : 'Select a participant in Daily Log Entry to view rings.'}
+                : 'Select your name from the header to view your rings.'}
             </CardDescription>
           </div>
         </div>
       </CardHeader>
-      <CardContent className="flex min-h-[420px] flex-col gap-5">
+      {!selectedParticipant && (
+        <CardContent>
+          <div className="grid gap-4 rounded-2xl border bg-slate-50 p-6 text-center">
+            <p className="text-sm text-slate-600">
+              Select your name from the header to view your activity rings and weekly progress.
+            </p>
+          </div>
+        </CardContent>
+      )}
+      <CardContent className={`flex min-h-[420px] flex-col gap-5 ${!selectedParticipant ? 'hidden' : ''}`}>
         <div className="rounded-2xl border bg-slate-50 px-3 py-2 text-[11px] text-slate-600 sm:text-xs">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex flex-wrap gap-2">

@@ -2,21 +2,21 @@ import { useEffect, useMemo, useState } from 'react';
 import { ChevronDown, ChevronUp, Menu, X } from 'lucide-react';
 import Header from '@/components/Header';
 import RulesCard from '@/components/RulesCard';
-import ParticipantManager from '@/components/ParticipantManager';
+import ProfilePanel from '@/components/ProfilePanel';
 import DailyLogForm from '@/components/DailyLogForm';
 import LeaderboardTable from '@/components/LeaderboardTable';
 import MyRingsPanel from '@/components/MyRingsPanel';
 import WeekRingsCalendar from '@/components/WeekRingsCalendar';
 import { Button } from '@/components/ui/button';
 import {
-  addParticipant,
   getDailyLogs,
   getLeaderboard,
   getParticipants,
   getWeeklySummary,
   logDailyEntry,
+  updateParticipant,
 } from '@/lib/api';
-import { getParticipantProfileImage, mergeParticipantsWithBaselines } from '@/lib/participants';
+import { DEFAULT_PROFILE_IMAGE, getParticipantProfileImage, mergeParticipantsWithBaselines } from '@/lib/participants';
 
 export default function App() {
   const [participants, setParticipants] = useState([]);
@@ -30,10 +30,11 @@ export default function App() {
   const [submittingLog, setSubmittingLog] = useState(false);
   const [message, setMessage] = useState('');
   const [showRules, setShowRules] = useState(false);
-  const [showAdmin, setShowAdmin] = useState(false);
+  const [showProfile, setShowProfile] = useState(false);
   const [selectedParticipantId, setSelectedParticipantId] = useState('');
   const [confirmedParticipantId, setConfirmedParticipantId] = useState('');
   const [showNavMenu, setShowNavMenu] = useState(false);
+  const [showParticipantMenu, setShowParticipantMenu] = useState(false);
 
   async function loadAll() {
     try {
@@ -87,15 +88,14 @@ export default function App() {
     }
   }, [derivedParticipants, selectedParticipantId, confirmedParticipantId]);
 
-  async function handleAddParticipant(payload) {
+  async function handleUpdateParticipant(payload) {
     try {
       setLoadingParticipants(true);
       setMessage('');
-      await addParticipant(payload);
+      await updateParticipant(payload);
       await loadAll();
-      setMessage(`Added participant: ${payload.name}`);
     } catch (error) {
-      setMessage(error.message || 'Failed to add participant.');
+      setMessage(error.message || 'Failed to update profile.');
     } finally {
       setLoadingParticipants(false);
     }
@@ -155,21 +155,73 @@ export default function App() {
             <div className="text-sm font-semibold text-white">NadaBarkada Fitness Challenge</div>
           </div>
 
-          <div className="flex min-w-0 items-center gap-3">
-            {selectedParticipant ? (
+          <div className="relative flex min-w-0 items-center">
+            <button
+              type="button"
+              onClick={() => setShowParticipantMenu((v) => !v)}
+              aria-label="Select participant"
+              className="flex items-center gap-2 rounded-xl px-2 py-1 hover:bg-white/15"
+            >
+              <img
+                src={getParticipantProfileImage(selectedParticipant?.profileImage)}
+                alt={selectedParticipant?.name || 'Select participant'}
+                className="h-9 w-9 flex-shrink-0 rounded-full border border-white/30 object-cover"
+              />
+              <div className="hidden min-w-0 text-right sm:block">
+                {selectedParticipant ? (
+                  <>
+                    <div className="truncate text-sm font-semibold text-white">{selectedParticipant.name}</div>
+                    <div className="text-xs text-blue-200">Change ▾</div>
+                  </>
+                ) : (
+                  <div className="text-sm text-blue-200">Select Participant ▾</div>
+                )}
+              </div>
+              <span className="text-xs text-blue-200 sm:hidden">▾</span>
+            </button>
+
+            {showParticipantMenu && (
               <>
-                <img
-                  src={getParticipantProfileImage(selectedParticipant.profileImage)}
-                  alt={selectedParticipant.name}
-                  className="h-10 w-10 rounded-full border object-cover"
+                <div
+                  className="fixed inset-0 z-40"
+                  onClick={() => setShowParticipantMenu(false)}
                 />
-                <div className="hidden min-w-0 text-right sm:block">
-                  <div className="truncate text-sm font-semibold text-white">{selectedParticipant.name}</div>
-                  <div className="truncate text-xs text-blue-100">{selectedParticipant.id}</div>
+                <div className="absolute right-0 top-full z-50 mt-3 w-64 rounded-2xl border border-white/20 bg-gradient-to-b from-blue-600 to-indigo-700 p-2 shadow-soft">
+                  <button
+                    type="button"
+                    onClick={() => { handleParticipantSelection(''); setShowParticipantMenu(false); }}
+                    className={`flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm hover:bg-white/15 ${!selectedParticipantId ? 'bg-white/10' : ''}`}
+                  >
+                    <div className="h-8 w-8 flex-shrink-0 rounded-full border border-white/30 bg-white/10" />
+                    <span className="text-blue-100">Select Participant</span>
+                    {!selectedParticipantId && <span className="ml-auto text-xs text-white">✓</span>}
+                  </button>
+                  {derivedParticipants.map((p) => (
+                    <button
+                      key={p.id || p.name}
+                      type="button"
+                      onClick={() => { handleParticipantSelection(p.id); setShowParticipantMenu(false); }}
+                      className={`flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm text-white hover:bg-white/15 ${selectedParticipantId === p.id ? 'bg-white/15' : ''}`}
+                    >
+                      <img
+                        src={getParticipantProfileImage(p.profileImage)}
+                        alt={p.name}
+                        className="h-8 w-8 flex-shrink-0 rounded-full border border-white/30 object-cover"
+                      />
+                      <span className="min-w-0 flex-1 truncate font-medium">{p.name}</span>
+                      {selectedParticipantId === p.id && <span className="flex-shrink-0 text-xs">✓</span>}
+                    </button>
+                  ))}
+                  <div className="mt-1 border-t border-white/15 pt-1">
+                    <a
+                      href="sms:+18186539874?body=Hi Jay, can you add me to the NadaBarkada Fitness Challenge? My name is [Your Name]."
+                      className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-xs text-blue-200 hover:bg-white/10"
+                    >
+                      <span>Not listed? Text Jay to register</span>
+                    </a>
+                  </div>
                 </div>
               </>
-            ) : (
-              <div className="text-xs text-blue-100">No participant selected</div>
             )}
           </div>
 
@@ -179,7 +231,7 @@ export default function App() {
                 ['Daily Log Entry', 'daily-log-entry'],
                 ['My Rings', 'my-rings'],
                 ['Leaderboard', 'leaderboard'],
-                ['Admin', 'admin-panels'],
+                ['My Profile', 'profile-panel'],
               ].map(([label, id]) => (
                 <button
                   key={id}
@@ -243,15 +295,38 @@ export default function App() {
         </div>
       )}
 
+      {selectedParticipant && selectedParticipant.profileImage === DEFAULT_PROFILE_IMAGE && (
+        <div className="mb-6 flex flex-wrap items-center gap-4 rounded-2xl border border-amber-200 bg-amber-50 p-4">
+          <img
+            src={getParticipantProfileImage('')}
+            alt=""
+            className="h-12 w-12 flex-shrink-0 rounded-full border border-amber-200 object-cover"
+          />
+          <div className="min-w-0 flex-1">
+            <div className="text-sm font-semibold text-amber-900">
+              Hey {selectedParticipant.name.split(' ')[0]}, personalize your profile!
+            </div>
+            <div className="text-sm text-amber-700">
+              Add a photo and confirm your display name before the challenge starts.
+            </div>
+          </div>
+          <Button
+            variant="outline"
+            className="flex-shrink-0 border-amber-300 text-amber-800 hover:bg-amber-100 hover:text-amber-900"
+            onClick={() => { setShowProfile(true); scrollToSection('profile-panel'); }}
+          >
+            Set up my profile
+          </Button>
+        </div>
+      )}
+
       <div className="mb-8 space-y-8">
         <div className="grid gap-6 xl:grid-cols-2">
           <div id="daily-log-entry" className="min-w-0">
             <DailyLogForm
-              participants={derivedParticipants}
+              participant={selectedParticipant}
               onSubmit={handleLogEntry}
               loading={submittingLog}
-              selectedParticipantId={selectedParticipantId}
-              onSelectedParticipantChange={handleParticipantSelection}
               confirmedParticipantId={confirmedParticipantId}
             />
           </div>
@@ -283,34 +358,33 @@ export default function App() {
         </div>
       </div>
 
-      <div id="admin-panels" className="mb-6 rounded-2xl border bg-white p-4 shadow-soft">
+      <div id="profile-panel" className="mb-6 rounded-2xl border bg-white p-4 shadow-soft">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 className="section-title">Admin panels</h2>
+            <h2 className="section-title">My Profile</h2>
             <p className="section-subtitle">
-              Manage participants, roster, baseline overrides, and profile photos.
+              Update your display name and profile picture.
             </p>
           </div>
           <Button
             variant="outline"
-            onClick={() => setShowAdmin((current) => !current)}
-            aria-expanded={showAdmin}
+            onClick={() => setShowProfile((current) => !current)}
+            aria-expanded={showProfile}
           >
-            {showAdmin ? <ChevronUp className="mr-2 h-4 w-4" /> : <ChevronDown className="mr-2 h-4 w-4" />}
-            {showAdmin ? 'Collapse admin' : 'Expand admin'}
+            {showProfile ? <ChevronUp className="mr-2 h-4 w-4" /> : <ChevronDown className="mr-2 h-4 w-4" />}
+            {showProfile ? 'Collapse' : 'Open My Profile'}
           </Button>
         </div>
       </div>
 
-      {showAdmin && (
-        <>
-          <ParticipantManager
-            participants={derivedParticipants}
-            onAddParticipant={handleAddParticipant}
-            loading={loadingParticipants}
-          />
-          <div className="mt-4 text-sm text-muted-foreground">Data source: {participantsSource}</div>
-        </>
+      {showProfile && (
+        <ProfilePanel
+          key={selectedParticipant?.id}
+          participant={selectedParticipant}
+          participants={derivedParticipants}
+          onUpdateProfile={handleUpdateParticipant}
+          loading={loadingParticipants}
+        />
       )}
     </div>
   );
