@@ -36,7 +36,7 @@ const initialState = {
   notes: '',
 };
 
-export default function DailyLogForm({ participant, participantLogs, onSubmit, loading, confirmedParticipantId, isAuthenticated, onAuthenticate, onLogout }) {
+export default function DailyLogForm({ participant, participantLogs, onSubmit, loading, confirmedParticipantId, isAuthenticated, isAdmin, onAuthenticate, onLogout, onDateChange }) {
   const [form, setForm] = useState(initialState);
   const [pinInput, setPinInput] = useState('');
   const [pinError, setPinError] = useState('');
@@ -105,6 +105,7 @@ export default function DailyLogForm({ participant, participantLogs, onSubmit, l
   const submit = async (event) => {
     event.preventDefault();
     if (!participant) return;
+    if (!isAdmin && form.date > todayIso()) return;
     await onSubmit({
       date: form.date,
       participantId: participant.id,
@@ -241,7 +242,11 @@ export default function DailyLogForm({ participant, participantLogs, onSubmit, l
                 type="date"
                 className="min-w-0"
                 value={form.date}
-                onChange={(e) => setForm((prev) => ({ ...prev, date: e.target.value }))}
+                max={isAdmin ? undefined : todayIso()}
+                onChange={(e) => {
+                  setForm((prev) => ({ ...prev, date: e.target.value }));
+                  onDateChange?.(e.target.value);
+                }}
               />
             </div>
 

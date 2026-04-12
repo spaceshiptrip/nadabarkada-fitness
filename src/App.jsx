@@ -48,6 +48,10 @@ export default function App() {
     () => window.localStorage.getItem(STAY_LOGGED_IN_KEY) || ''
   );
   const [showPinReminder, setShowPinReminder] = useState(false);
+  const [logDate, setLogDate] = useState(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  });
 
   async function loadAll() {
     try {
@@ -462,8 +466,10 @@ export default function App() {
               loading={submittingLog}
               confirmedParticipantId={confirmedParticipantId}
               isAuthenticated={isAuthenticated}
+              isAdmin={isAdmin}
               onAuthenticate={handleAuthenticate}
               onLogout={handleLogout}
+              onDateChange={setLogDate}
             />
           </div>
           <div id="my-rings" className="min-w-0">
@@ -472,6 +478,7 @@ export default function App() {
               logs={dailyLogs}
               selectedParticipantId={selectedParticipantId}
               isAuthenticated={isAuthenticated}
+              selectedDate={logDate}
             />
           </div>
         </div>

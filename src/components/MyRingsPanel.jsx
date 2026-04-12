@@ -108,7 +108,7 @@ function DayRings({ log, size = 34 }) {
   );
 }
 
-export default function MyRingsPanel({ participants, logs, selectedParticipantId, isAuthenticated }) {
+export default function MyRingsPanel({ participants, logs, selectedParticipantId, isAuthenticated, selectedDate }) {
   const [view, setView] = useState('day');
   const [showLegend, setShowLegend] = useState(false);
 
@@ -119,8 +119,8 @@ export default function MyRingsPanel({ participants, logs, selectedParticipantId
 
   const summary = useMemo(() => {
     if (!selectedParticipant) return buildEmptySummary();
-    return buildSummary(selectedParticipant, logs, view);
-  }, [selectedParticipant, logs, view]);
+    return buildSummary(selectedParticipant, logs, view, selectedDate);
+  }, [selectedParticipant, logs, view, selectedDate]);
 
   return (
     <Card className="h-full">
@@ -472,7 +472,7 @@ function LedDot({ active, colorClass }) {
   );
 }
 
-function buildSummary(participant, logs, view) {
+function buildSummary(participant, logs, view, selectedDate) {
   const participantLogs = logs.filter((log) => matchesParticipant(participant, log));
   const today = new Date();
   const todayIso = toLocalIsoDate(today);
@@ -482,8 +482,8 @@ function buildSummary(participant, logs, view) {
   const currentYear = today.getFullYear();
 
   if (view === 'day') {
-    const log = getLogForDate(participantLogs, todayIso);
-    const displayDate = todayIso;
+    const displayDate = (selectedDate && String(selectedDate).slice(0, 10)) || todayIso;
+    const log = getLogForDate(participantLogs, displayDate);
     const points = log ? Number(log.dailyPoints ?? calculateDailyPoints(log)) : 0;
     return {
       isPreCompetition,
