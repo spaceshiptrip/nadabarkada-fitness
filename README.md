@@ -229,6 +229,10 @@ For this repository, the site will publish at:
 
 `https://spaceshiptrip.github.io/nadabarkada-fitness/`
 
+Planned custom domain:
+
+`https://fitness.nadabarkada.com`
+
 ## Environment
 
 Local development uses [.env.local](/Users/jtorres/Workspaces/pnb/fitness/nadabarkada-fitness/.env.local) and GitHub Pages production builds use [.env.production](/Users/jtorres/Workspaces/pnb/fitness/nadabarkada-fitness/.env.production).
@@ -322,6 +326,55 @@ High level:
   - use `generateMyHash()` as the reference pattern for producing the stored PIN hash
 - Add a dedicated admin migration/helper method in this project’s `Code.gs` to hash or obfuscate seeded phone/PIN credentials after the initial seed pass.
 6. Put the deployment URL into `VITE_APP_SCRIPT_URL`.
+
+### Deployment migration: GitHub Pages custom domain
+
+- Host the fitness frontend on GitHub Pages at `https://fitness.nadabarkada.com`.
+- This repo now includes `public/CNAME` with `fitness.nadabarkada.com`.
+- This repo now builds with Vite `base: '/'` so assets resolve correctly when served from the custom domain root.
+- Keep the site statically hosted on GitHub Pages; do not move frontend hosting to GoDaddy.
+
+### Migration steps: GitHub
+
+1. Push this repo to GitHub with the `public/CNAME` file included.
+2. Let the GitHub Pages workflow deploy successfully at least once after that push.
+3. In the GitHub repository, open `Settings -> Pages`.
+4. Confirm `Source` is `GitHub Actions`.
+5. Confirm the custom domain is set to `fitness.nadabarkada.com`.
+6. Ensure `Enforce HTTPS` is enabled after the DNS is live and GitHub finishes certificate provisioning.
+
+### Migration steps: GoDaddy DNS
+
+For a subdomain like `fitness.nadabarkada.com`, the simplest setup is usually a `CNAME` record. You should not need to host anything in GoDaddy.
+
+1. Open the DNS manager for `nadabarkada.com` in GoDaddy.
+2. Add or update a `CNAME` record:
+   - `Host`: `fitness`
+   - `Points to`: `spaceshiptrip.github.io`
+   - `TTL`: default is fine
+3. Remove any conflicting `A`, `AAAA`, or `CNAME` records already using the `fitness` host.
+4. Save the DNS change.
+
+### Notes about GoDaddy
+
+- For `fitness.nadabarkada.com`, a `CNAME` is usually all you need in GoDaddy.
+- You do not need to upload site files to GoDaddy.
+- You do not need GoDaddy forwarding for this setup.
+- You do not need apex/root-domain `A` records unless you later want `nadabarkada.com` itself hosted on GitHub Pages.
+
+### Validation checklist
+
+- `https://spaceshiptrip.github.io/nadabarkada-fitness/` may no longer be the preferred URL once the custom domain is active.
+- `https://fitness.nadabarkada.com` should load the app and all JS/CSS assets without 404s.
+- The browser should not show mixed-content or asset-path issues.
+- GitHub Pages should show the custom domain as verified and HTTPS-enabled.
+
+### If migration does not work
+
+- Check whether the `fitness` DNS record is a `CNAME` to `spaceshiptrip.github.io`.
+- Check whether another DNS record for `fitness` conflicts with it.
+- Check GitHub repository `Settings -> Pages` to confirm the custom domain value matches `fitness.nadabarkada.com`.
+- Wait for DNS propagation and GitHub certificate provisioning; this can take some time after the first change.
 
 ## Workflow
 
