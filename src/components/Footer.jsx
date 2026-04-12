@@ -11,11 +11,11 @@ export default function Footer() {
           <img
             src={spaceshipLogo}
             alt="SpaceshipTrip Logo"
-            className="h-10 w-10 flex-shrink-0 rounded-full object-cover"
+            className="h-12 w-12 flex-shrink-0 rounded-full object-cover"
           />
           <div className="text-center">
-            <span className="block text-sm font-bold text-white">Move Yo' Azz App</span>
-            <span className="text-xs text-blue-300">Open Source</span>
+            <span className="block text-base font-bold text-white">Move Yo' Azz App</span>
+            <span className="text-xs text-blue-300">fitness.nadabarkada.com</span>
           </div>
         </div>
 

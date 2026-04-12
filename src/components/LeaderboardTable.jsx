@@ -27,7 +27,7 @@ export default function LeaderboardTable({
               <Lock className="h-8 w-8 text-slate-300" />
               <div className="text-base font-semibold text-slate-600">Challenge not active yet</div>
               <div className="text-sm text-muted-foreground">
-                Standings unlock on <span className="font-semibold text-slate-700">{CHALLENGE_CONFIG.challengeStartDate}</span>
+                Standings unlock on <span className="font-semibold text-slate-700">May 4, 2026</span>
               </div>
             </div>
           ) : rows.length === 0 ? (

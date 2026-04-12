@@ -2,6 +2,11 @@ import { useEffect, useState } from 'react';
 import { Trophy } from 'lucide-react';
 import { CHALLENGE_CONFIG } from '@/lib/config';
 
+function friendlyDate(isoStr) {
+  const [y, m, d] = isoStr.split('-').map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
 function getTimeLeft(targetDateStr) {
   const target = new Date(targetDateStr + 'T00:00:00');
   const now = new Date();
@@ -63,7 +68,7 @@ export default function Header() {
 
       <div className="flex flex-col items-center gap-6 sm:flex-row sm:items-end sm:justify-around">
         <CountdownBlock
-          label={`Until challenge start · ${CHALLENGE_CONFIG.challengeStartDate}`}
+          label={`Until challenge start · ${friendlyDate(CHALLENGE_CONFIG.challengeStartDate)}`}
           time={challengeTime}
           large
         />
@@ -71,7 +76,7 @@ export default function Header() {
         <div className="h-px w-full bg-white/20 sm:h-12 sm:w-px" />
 
         <CountdownBlock
-          label={`Until baseline start · ${CHALLENGE_CONFIG.baselineStartDate}`}
+          label={`Until baseline start · ${friendlyDate(CHALLENGE_CONFIG.baselineStartDate)}`}
           time={baselineTime}
           large={false}
         />
@@ -85,7 +90,7 @@ export default function Header() {
         ].map(({ date, label, emoji }) => (
           <div key={date} className="flex flex-col items-center gap-1 rounded-2xl bg-white/10 px-4 py-3 text-center">
             <span className="text-2xl">{emoji}</span>
-            <span className="text-xl font-bold tabular-nums text-white md:text-2xl">{date}</span>
+            <span className="text-xl font-bold text-white md:text-2xl">{friendlyDate(date)}</span>
             <span className="text-sm font-semibold uppercase tracking-widest text-blue-200">{label}</span>
           </div>
         ))}

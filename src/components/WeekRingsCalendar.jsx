@@ -139,8 +139,15 @@ export default function WeekRingsCalendar({
             <Lock className="h-8 w-8 text-slate-300" />
             <div className="text-base font-semibold text-slate-600">Challenge not active yet</div>
             <div className="text-sm text-muted-foreground">
-              Weekly rings unlock on <span className="font-semibold text-slate-700">{CHALLENGE_CONFIG.challengeStartDate}</span>
+              Weekly rings unlock on <span className="font-semibold text-slate-700">May 4, 2026</span>
             </div>
+          </div>
+        )}
+        {challengeActive && logs.length === 0 && (
+          <div className="mb-4 rounded-2xl border border-blue-200 bg-blue-50 px-4 py-6 text-center">
+            <div className="text-2xl mb-1">🏃</div>
+            <div className="text-sm font-semibold text-blue-900">No activity logged yet</div>
+            <div className="mt-1 text-xs text-blue-700">Rings and standings will appear once participants start logging.</div>
           </div>
         )}
         {challengeActive && (

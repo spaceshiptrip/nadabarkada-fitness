@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ChevronDown, ChevronUp, KeyRound, Loader2, LogOut, Menu, X } from 'lucide-react';
+import { ChevronDown, ChevronUp, KeyRound, Loader2, LogOut, Menu, Plus, ShieldCheck, X } from 'lucide-react';
+import { toast } from 'sonner';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import RulesCard from '@/components/RulesCard';
@@ -23,6 +24,12 @@ import {
 } from '@/lib/api';
 import { DEFAULT_PROFILE_IMAGE, getParticipantProfileImage, mergeParticipantsWithBaselines } from '@/lib/participants';
 import { ADMIN_PHONE_E164, ADMIN_SMS_BODY } from '@/lib/config';
+
+function formatFriendlyDate(isoStr) {
+  if (!isoStr) return '';
+  const [y, m, d] = isoStr.split('-').map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
 
 export default function App() {
   const [participants, setParticipants] = useState([]);
@@ -138,10 +145,11 @@ export default function App() {
       await loadAll();
       if (result?.ok && payload.participantId) {
         setConfirmedParticipantId(payload.participantId);
+        const pts = result?.data?.dailyPoints;
+        toast.success(`Log saved for ${formatFriendlyDate(payload.date)}!`, {
+          description: pts != null ? `Daily points: ${pts} / 10` : 'Entry recorded successfully.',
+        });
       }
-      setMessage(
-        `Saved log for ${payload.name} on ${payload.date}. Daily points: ${result?.data?.dailyPoints ?? 'computed on backend'}`
-      );
     } catch (error) {
       setMessage(error.message || 'Failed to save daily log.');
     } finally {
@@ -172,6 +180,10 @@ export default function App() {
       if (!window.localStorage.getItem(pinChangedKey)) {
         setShowPinReminder(true);
       }
+      const p = participants.find(x => x.id === participantId);
+      toast.success(`Welcome back${p ? `, ${p.name.split(' ')[0]}` : ''}!`, {
+        description: 'You are now logged in.',
+      });
     }
     return result;
   }
@@ -244,7 +256,7 @@ export default function App() {
   return (
     <div className="app-shell min-h-screen flex flex-col">
       <div className="fixed inset-x-0 top-0 z-50 px-4 pt-3 md:px-6">
-        <div className="mx-auto max-w-7xl rounded-2xl border border-white/20 bg-gradient-to-r from-blue-600/95 to-indigo-700/95 p-3 text-white shadow-soft backdrop-blur">
+        <div className="mx-auto max-w-7xl rounded-2xl border border-white/25 bg-gradient-to-r from-blue-600/95 to-indigo-700/95 p-3 text-white shadow-lg ring-1 ring-inset ring-white/10 backdrop-blur">
           <div className="relative flex items-center justify-between gap-3">
           <Button
             variant="ghost"
@@ -252,14 +264,15 @@ export default function App() {
             onClick={() => setShowNavMenu((current) => !current)}
             aria-expanded={showNavMenu}
             aria-label="Toggle navigation menu"
-            className="text-white hover:bg-white/15 hover:text-white"
+            className="rounded-xl bg-white/10 text-white hover:bg-white/20 hover:text-white"
           >
             {showNavMenu ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </Button>
 
           <div className="min-w-0 flex-1 text-center">
-            <div className="flex items-center justify-center gap-2 text-sm font-semibold text-white">
-              NadaBarkada Fitness Challenge
+            <div className="flex items-center justify-center gap-2 font-semibold text-white">
+              <span className="hidden text-sm sm:inline">NadaBarkada Fitness Challenge</span>
+              <span className="text-sm sm:hidden">NB Fitness</span>
               {serverBusy && <Loader2 className="h-4 w-4 animate-spin text-blue-200" />}
             </div>
           </div>
@@ -288,6 +301,11 @@ export default function App() {
                 {serverBusy && (
                   <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/40">
                     <Loader2 className="h-4 w-4 animate-spin text-white" />
+                  </div>
+                )}
+                {isAdmin && !serverBusy && (
+                  <div className="absolute -bottom-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-yellow-400 ring-1 ring-indigo-700">
+                    <ShieldCheck className="h-2.5 w-2.5 text-yellow-900" />
                   </div>
                 )}
               </div>
@@ -457,8 +475,11 @@ export default function App() {
       </div>
 
       {message && (
-        <div className="mb-6 rounded-2xl border bg-white p-4 text-sm shadow-soft">
-          {message}
+        <div className="mb-6 flex items-center justify-between gap-4 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-800 shadow-soft">
+          <span>{message}</span>
+          <Button size="sm" variant="outline" className="flex-shrink-0 border-red-300 text-red-700 hover:bg-red-100" onClick={() => { setMessage(''); loadAll(); }}>
+            Retry
+          </Button>
         </div>
       )}
 
@@ -630,6 +651,16 @@ export default function App() {
           />
         </div>
       )}
+
+      {/* Mobile FAB — scroll to daily log */}
+      <button
+        type="button"
+        onClick={() => document.getElementById('daily-log-entry')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+        className="fixed bottom-6 right-6 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-blue-600 text-white shadow-lg ring-4 ring-blue-600/30 transition-transform hover:scale-110 active:scale-95 sm:hidden"
+        aria-label="Go to daily log"
+      >
+        <Plus className="h-7 w-7" />
+      </button>
 
       <Footer />
     </div>
