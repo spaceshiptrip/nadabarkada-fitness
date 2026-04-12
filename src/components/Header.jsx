@@ -76,6 +76,20 @@ export default function Header() {
           large={false}
         />
       </div>
+
+      <div className="mt-5 grid grid-cols-1 gap-3 border-t border-white/15 pt-4 sm:grid-cols-3">
+        {[
+          { date: CHALLENGE_CONFIG.baselineStartDate, label: 'Baseline Week', emoji: '📋' },
+          { date: CHALLENGE_CONFIG.challengeStartDate, label: 'Week 1 Starts', emoji: '🟢' },
+          { date: CHALLENGE_CONFIG.challengeEndDate, label: 'Challenge Ends', emoji: '🏆' },
+        ].map(({ date, label, emoji }) => (
+          <div key={date} className="flex flex-col items-center gap-1 rounded-2xl bg-white/10 px-4 py-3 text-center">
+            <span className="text-2xl">{emoji}</span>
+            <span className="text-xl font-bold tabular-nums text-white md:text-2xl">{date}</span>
+            <span className="text-sm font-semibold uppercase tracking-widest text-blue-200">{label}</span>
+          </div>
+        ))}
+      </div>
     </header>
   );
 }

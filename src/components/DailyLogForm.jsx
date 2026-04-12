@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ClipboardCheck, KeyRound, LogOut, MessageSquare } from 'lucide-react';
+import { ChevronDown, ChevronUp, ClipboardCheck, Info, KeyRound, LogOut, MessageSquare } from 'lucide-react';
 import {
   calculateActivityPoints,
   calculateWorkoutPoints,
@@ -15,6 +15,30 @@ import { getParticipantProfileImage } from '@/lib/participants';
 import { ADMIN_PHONE_E164, ADMIN_SMS_BODY } from '@/lib/config';
 
 const SMS_HREF = `sms:${ADMIN_PHONE_E164}?body=${encodeURIComponent(ADMIN_SMS_BODY)}`;
+
+function InfoTooltip({ text }) {
+  const [visible, setVisible] = useState(false);
+  return (
+    <div className="relative flex-shrink-0">
+      <button
+        type="button"
+        className="flex h-5 w-5 items-center justify-center rounded-full bg-blue-500 text-[10px] font-bold text-white hover:bg-blue-600"
+        onMouseEnter={() => setVisible(true)}
+        onMouseLeave={() => setVisible(false)}
+        onClick={() => setVisible((v) => !v)}
+        aria-label="More info"
+      >
+        i
+      </button>
+      {visible && (
+        <div className="absolute bottom-full right-0 z-20 mb-2 w-60 rounded-2xl border border-blue-200 bg-blue-50 p-3 text-xs text-blue-800 shadow-lg">
+          <div className="absolute -bottom-1.5 right-2 h-3 w-3 rotate-45 border-b border-r border-blue-200 bg-blue-50" />
+          {text}
+        </div>
+      )}
+    </div>
+  );
+}
 
 function todayIso() {
   return toLocalIsoDate(new Date());
@@ -38,6 +62,7 @@ const initialState = {
 
 export default function DailyLogForm({ participant, participantLogs, onSubmit, loading, confirmedParticipantId, isAuthenticated, isAdmin, onAuthenticate, onLogout, onDateChange }) {
   const [form, setForm] = useState(initialState);
+  const [showInstructions, setShowInstructions] = useState(false);
   const [pinInput, setPinInput] = useState('');
   const [pinError, setPinError] = useState('');
   const [pinLoading, setPinLoading] = useState(false);
@@ -235,6 +260,61 @@ export default function DailyLogForm({ participant, participantLogs, onSubmit, l
       ) : (
         <CardContent className="grid gap-6 xl:grid-cols-[1.2fr,0.8fr]">
           <form onSubmit={submit} className="grid min-w-0 gap-4 rounded-2xl border bg-slate-50 p-4">
+
+            {/* Collapsible instructions */}
+            <div className="rounded-2xl border bg-white">
+              <button
+                type="button"
+                onClick={() => setShowInstructions((v) => !v)}
+                className="flex w-full items-center justify-between gap-2 px-4 py-3 text-left text-sm font-semibold text-slate-700"
+                aria-expanded={showInstructions}
+              >
+                <span className="flex items-center gap-2">
+                  <Info className="h-4 w-4 text-blue-500" />
+                  How to log your day
+                </span>
+                {showInstructions ? <ChevronUp className="h-4 w-4 text-slate-400" /> : <ChevronDown className="h-4 w-4 text-slate-400" />}
+              </button>
+              {showInstructions && (
+                <div className="grid gap-4 border-t px-4 pb-4 pt-3 text-sm text-slate-700">
+                  <p className="text-xs text-slate-500">
+                    Log your totals at any point during the day or all at once at the end — whatever works for you.
+                  </p>
+
+                  <div>
+                    <div className="mb-1.5 font-semibold text-slate-800">Active Minutes</div>
+                    <p className="mb-2 text-xs text-slate-500">
+                      Count any movement that gets your body going — not just sitting or standing still. Tally it up throughout the day or enter the total at the end.
+                    </p>
+                    <ul className="space-y-0.5 text-xs text-slate-600">
+                      {[
+                        'Gym workouts, fitness classes, home workouts',
+                        'Walks — lunch walk, walking the dog, walk to the store',
+                        'Biking — commute, errands, trails',
+                        'Sports, recreational activities, dancing, swimming',
+                        'Pacing or moving during a phone/video call',
+                        'Yard work, housework, active chores',
+                      ].map((ex) => (
+                        <li key={ex} className="flex items-start gap-1.5">
+                          <span className="mt-0.5 text-blue-400">•</span> {ex}
+                        </li>
+                      ))}
+                    </ul>
+                    <div className="mt-2 rounded-xl bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                      <strong>Standing desk?</strong> Passive standing doesn't count — your body isn't actively moving. But if you're pacing, doing calf raises, or walking during a meeting, that counts!
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="mb-1.5 font-semibold text-slate-800">Steps</div>
+                    <p className="text-xs text-slate-500">
+                      Log your total steps for the day. Check your phone's Health app, Garmin, Apple Watch, or fitness tracker at the end of the day.
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+
             <div className="grid gap-2">
               <Label htmlFor="log-date">Date</Label>
               <Input
@@ -276,22 +356,28 @@ export default function DailyLogForm({ participant, participantLogs, onSubmit, l
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
-              <label className="flex items-center gap-3 rounded-xl border bg-white px-3 py-3 text-sm">
-                <input
-                  type="checkbox"
-                  checked={form.workoutDone}
-                  onChange={(e) => setForm((prev) => ({ ...prev, workoutDone: e.target.checked }))}
-                />
-                Workout session (20+ min)
-              </label>
-              <label className="flex items-center gap-3 rounded-xl border bg-white px-3 py-3 text-sm">
-                <input
-                  type="checkbox"
-                  checked={form.mobilityDone}
-                  onChange={(e) => setForm((prev) => ({ ...prev, mobilityDone: e.target.checked }))}
-                />
-                Self-Care (5+ min)
-              </label>
+              <div className="flex items-center gap-2 rounded-xl border bg-white px-3 py-3">
+                <label className="flex flex-1 cursor-pointer items-center gap-3 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={form.workoutDone}
+                    onChange={(e) => setForm((prev) => ({ ...prev, workoutDone: e.target.checked }))}
+                  />
+                  Workout session (20+ min)
+                </label>
+                <InfoTooltip text="A purposeful workout session of 20+ minutes — gym, run, swim, fitness class, home workout, etc." />
+              </div>
+              <div className="flex items-center gap-2 rounded-xl border bg-white px-3 py-3">
+                <label className="flex flex-1 cursor-pointer items-center gap-3 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={form.mobilityDone}
+                    onChange={(e) => setForm((prev) => ({ ...prev, mobilityDone: e.target.checked }))}
+                  />
+                  Self-Care (5+ min)
+                </label>
+                <InfoTooltip text="5+ minutes of intentional recovery — yoga, stretching, foam rolling, meditation, breathing exercises, ice bath, or massage." />
+              </div>
             </div>
 
             <div className="grid gap-2">

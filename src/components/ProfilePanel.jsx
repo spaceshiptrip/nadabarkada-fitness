@@ -39,7 +39,7 @@ async function resizeProfileImage(file) {
   });
 }
 
-export default function ProfilePanel({ participant, onUpdateProfile, onPinChanged, loading }) {
+export default function ProfilePanel({ participant, onUpdateProfile, onPinChanged, loading, showPinBubble }) {
   const [form, setForm] = useState({
     name: participant?.name || '',
     deviceType: participant?.deviceType || 'Garmin',
@@ -204,7 +204,15 @@ export default function ProfilePanel({ participant, onUpdateProfile, onPinChange
             </Button>
           </form>
 
-          <form onSubmit={submitPin} className="grid min-w-0 gap-4 rounded-2xl border bg-slate-50 p-4">
+          <form onSubmit={submitPin} className="relative grid min-w-0 gap-4 rounded-2xl border bg-slate-50 p-4">
+            {showPinBubble && (
+              <div className="absolute -top-12 left-1/2 z-10 -translate-x-1/2 animate-bounce">
+                <div className="relative whitespace-nowrap rounded-2xl bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white shadow-lg">
+                  Change your PIN here!
+                  <div className="absolute -bottom-2 left-1/2 h-0 w-0 -translate-x-1/2 border-x-8 border-t-8 border-x-transparent border-t-indigo-600" />
+                </div>
+              </div>
+            )}
             <div className="flex items-center gap-2 text-sm font-semibold text-slate-800">
               <KeyRound className="h-4 w-4" />
               Change PIN

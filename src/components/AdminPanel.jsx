@@ -44,6 +44,8 @@ export default function AdminPanel({ participants, onResetPin, onAddParticipant,
   // Roster / detail state
   const [selected, setSelected] = useState(null);
   const [editForm, setEditForm] = useState(null);
+  const [editImageError, setEditImageError] = useState('');
+  const editFileRef = useRef(null);
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState('');
   const [resetting, setResetting] = useState(false);
@@ -66,9 +68,12 @@ export default function AdminPanel({ participants, onResetPin, onAddParticipant,
         teamName: selected.teamName || '',
         role: selected.role || 'participant',
         active: selected.active !== 0 && selected.active !== false,
+        profileImage: '',
       });
       setSaveMessage('');
       setResetMessage('');
+      setEditImageError('');
+      if (editFileRef.current) editFileRef.current.value = '';
     } else {
       setEditForm(null);
     }
@@ -95,6 +100,7 @@ export default function AdminPanel({ participants, onResetPin, onAddParticipant,
         teamName: editForm.teamName.trim(),
         role: editForm.role,
         active: editForm.active ? 1 : 0,
+        ...(editForm.profileImage ? { profileImage: editForm.profileImage } : {}),
       });
       setSaveMessage(result?.ok ? 'Saved!' : `Failed: ${result?.error || 'unknown error'}`);
       setTimeout(() => setSaveMessage(''), 3000);
@@ -118,6 +124,19 @@ export default function AdminPanel({ participants, onResetPin, onAddParticipant,
       setResetMessage('Error resetting PIN. Please try again.');
     } finally {
       setResetting(false);
+    }
+  };
+
+  const handleEditImageChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) { setEditImageError('Please upload an image file.'); return; }
+    try {
+      setEditImageError('');
+      const profileImage = await resizeProfileImage(file);
+      setEditForm((prev) => ({ ...prev, profileImage }));
+    } catch (err) {
+      setEditImageError(err.message || 'Unable to process that image.');
     }
   };
 
@@ -234,6 +253,39 @@ export default function AdminPanel({ participants, onResetPin, onAddParticipant,
                 </div>
 
                 <form onSubmit={handleSave} className="grid gap-3">
+                  <div className="grid gap-1.5">
+                    <Label htmlFor="edit-photo">Avatar</Label>
+                    <div className="flex items-center gap-3 rounded-2xl border bg-slate-50 p-3">
+                      <img
+                        src={editForm.profileImage || getParticipantProfileImage(selected.profileImage)}
+                        alt={selected.name}
+                        className="h-12 w-12 flex-shrink-0 rounded-full border object-cover"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <Input
+                          id="edit-photo"
+                          ref={editFileRef}
+                          type="file"
+                          accept="image/*"
+                          className="px-2 file:mr-3 file:rounded-lg file:border-0 file:bg-slate-100 file:px-3 file:py-2 file:text-sm file:font-medium"
+                          onChange={handleEditImageChange}
+                        />
+                        {editImageError && <div className="mt-1 text-xs text-red-600">{editImageError}</div>}
+                      </div>
+                      {editForm.profileImage && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="flex-shrink-0"
+                          onClick={() => { setEditForm((prev) => ({ ...prev, profileImage: '' })); if (editFileRef.current) editFileRef.current.value = ''; }}
+                        >
+                          Clear
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+
                   <div className="grid gap-1.5">
                     <Label htmlFor="edit-name">Name</Label>
                     <Input
