@@ -78,6 +78,10 @@ export default function App() {
     () => mergeParticipantsWithBaselines(participants, dailyLogs),
     [participants, dailyLogs]
   );
+  const selectedParticipantLogs = useMemo(
+    () => dailyLogs.filter((log) => log.participantId === selectedParticipantId),
+    [dailyLogs, selectedParticipantId]
+  );
   const selectedParticipant = useMemo(
     () => derivedParticipants.find((participant) => participant.id === selectedParticipantId) || null,
     [derivedParticipants, selectedParticipantId]
@@ -453,6 +457,7 @@ export default function App() {
           <div id="daily-log-entry" className="min-w-0">
             <DailyLogForm
               participant={selectedParticipant}
+              participantLogs={selectedParticipantLogs}
               onSubmit={handleLogEntry}
               loading={submittingLog}
               confirmedParticipantId={confirmedParticipantId}

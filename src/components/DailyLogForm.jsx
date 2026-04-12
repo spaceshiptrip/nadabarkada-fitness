@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ClipboardCheck, KeyRound, LogOut, MessageSquare } from 'lucide-react';
 import {
   calculateActivityPoints,
@@ -36,15 +36,42 @@ const initialState = {
   notes: '',
 };
 
-export default function DailyLogForm({ participant, onSubmit, loading, confirmedParticipantId, isAuthenticated, onAuthenticate, onLogout }) {
+export default function DailyLogForm({ participant, participantLogs, onSubmit, loading, confirmedParticipantId, isAuthenticated, onAuthenticate, onLogout }) {
   const [form, setForm] = useState(initialState);
   const [pinInput, setPinInput] = useState('');
   const [pinError, setPinError] = useState('');
   const [pinLoading, setPinLoading] = useState(false);
   const [stayLoggedIn, setStayLoggedIn] = useState(false);
 
+  // Pre-fill form from existing log when date or participant changes
+  useEffect(() => {
+    if (!participant) return;
+    const existing = (participantLogs || []).find(
+      (log) => String(log.date || '').slice(0, 10) === form.date
+    );
+    if (existing) {
+      setForm({
+        date: form.date,
+        activeMinutes: existing.activeMinutes != null ? String(existing.activeMinutes) : '',
+        workoutDone: Boolean(existing.workoutDone),
+        steps: existing.steps != null ? String(existing.steps) : '',
+        mobilityDone: Boolean(existing.mobilityDone),
+        notes: existing.notes || '',
+      });
+    } else {
+      setForm((prev) => ({ ...initialState, date: prev.date }));
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.date, participant?.id, participantLogs]);
+
   const showConfirmedTitle =
     Boolean(participant && confirmedParticipantId && participant.id === confirmedParticipantId);
+
+  const existingEntry = useMemo(() => {
+    return (participantLogs || []).find(
+      (log) => String(log.date || '').slice(0, 10) === form.date
+    ) || null;
+  }, [participantLogs, form.date]);
 
   const breakdown = useMemo(() => {
     const activity = calculateActivityPoints(Number(form.activeMinutes || 0));
@@ -88,7 +115,6 @@ export default function DailyLogForm({ participant, onSubmit, loading, confirmed
       mobilityDone: form.mobilityDone,
       notes: form.notes.trim(),
     });
-    setForm((prev) => ({ ...initialState, date: prev.date }));
   };
 
   const breakdownRows = [
@@ -133,6 +159,8 @@ export default function DailyLogForm({ participant, onSubmit, loading, confirmed
             ? 'Select your name in the header to start logging.'
             : !isAuthenticated
             ? `Enter your PIN to unlock the log form for ${participant.name}.`
+            : existingEntry
+            ? `Editing your entry for ${form.date}. Changes will overwrite the saved entry.`
             : 'Enter daily stats and preview your score before submitting.'}
         </CardDescription>
       </CardHeader>
@@ -273,7 +301,7 @@ export default function DailyLogForm({ participant, onSubmit, loading, confirmed
             </div>
 
             <Button type="submit" disabled={loading}>
-              {loading ? 'Saving...' : 'Submit daily log'}
+              {loading ? 'Saving...' : existingEntry ? 'Update entry' : 'Submit daily log'}
             </Button>
           </form>
 
