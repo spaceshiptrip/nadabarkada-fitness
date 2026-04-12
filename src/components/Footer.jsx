@@ -2,8 +2,9 @@ import spaceshipLogo from '@/assets/SpaceshipTripLogo.png';
 
 export default function Footer() {
   return (
-    <footer className="mt-auto w-full bg-gradient-to-br from-blue-700 to-indigo-900 py-6">
-      <div className="mx-auto flex max-w-7xl flex-col items-center gap-4 px-4">
+    <footer className="mt-auto w-full px-4 pb-4 pt-2">
+      <div className="mx-auto max-w-7xl rounded-3xl bg-gradient-to-br from-blue-700 to-indigo-900 py-6 shadow-soft">
+      <div className="flex flex-col items-center gap-4 px-4">
 
         {/* Logo + app name */}
         <div className="flex items-center gap-3">
@@ -45,6 +46,7 @@ export default function Footer() {
           <div className="mt-1 italic text-blue-400">"Beets, Bears, Battlestar Galactica"</div>
         </div>
 
+      </div>
       </div>
     </footer>
   );
