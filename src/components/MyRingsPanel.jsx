@@ -122,6 +122,11 @@ export default function MyRingsPanel({ participants, logs, selectedParticipantId
     return buildSummary(selectedParticipant, logs, view, selectedDate);
   }, [selectedParticipant, logs, view, selectedDate]);
 
+  const hasAnyLogs = useMemo(() => {
+    if (!selectedParticipant) return false;
+    return logs.some((log) => matchesParticipant(selectedParticipant, log));
+  }, [selectedParticipant, logs]);
+
   return (
     <Card className="h-full">
       <CardHeader>
@@ -160,6 +165,13 @@ export default function MyRingsPanel({ participants, logs, selectedParticipantId
         </CardContent>
       )}
       <CardContent className={`flex min-h-[420px] flex-col gap-5 ${!selectedParticipant || !isAuthenticated ? 'hidden' : ''}`}>
+        {selectedParticipant && isAuthenticated && !hasAnyLogs && (
+          <div className="rounded-2xl border border-blue-200 bg-blue-50 px-4 py-4 text-center">
+            <div className="text-2xl mb-1">🏃</div>
+            <div className="text-sm font-semibold text-blue-900">No activity logged yet</div>
+            <div className="mt-1 text-xs text-blue-700">Log your first day below to see your rings fill up!</div>
+          </div>
+        )}
         {summary.isPreCompetition && (
           <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
             <div className="font-semibold">Pre-competition updates</div>
