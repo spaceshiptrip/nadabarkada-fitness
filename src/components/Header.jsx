@@ -1,50 +1,80 @@
-import { Trophy, CalendarDays, Activity } from 'lucide-react';
-import { SCHEDULE, formatScheduleDate, formatScheduleDateShort } from '@/lib/points';
+import { useEffect, useState } from 'react';
+import { Trophy } from 'lucide-react';
+import { CHALLENGE_CONFIG } from '@/lib/config';
+
+function getTimeLeft(targetDateStr) {
+  const target = new Date(targetDateStr + 'T00:00:00');
+  const now = new Date();
+  const diff = target - now;
+  if (diff <= 0) return null;
+  const totalSeconds = Math.floor(diff / 1000);
+  const days = Math.floor(totalSeconds / 86400);
+  const hours = Math.floor((totalSeconds % 86400) / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  return { days, hours, minutes, seconds };
+}
+
+function pad(n) {
+  return String(n).padStart(2, '0');
+}
+
+function CountdownBlock({ label, time, large }) {
+  if (!time) return (
+    <div className={`text-center ${large ? '' : 'opacity-70'}`}>
+      <div className={`font-bold tabular-nums tracking-tight text-white ${large ? 'text-3xl md:text-5xl' : 'text-lg md:text-2xl'}`}>
+        Started!
+      </div>
+      <div className={`mt-1 font-semibold uppercase tracking-widest text-blue-200 ${large ? 'text-xs' : 'text-[10px]'}`}>
+        {label}
+      </div>
+    </div>
+  );
+
+  return (
+    <div className={`text-center ${large ? '' : 'opacity-80'}`}>
+      <div className={`font-bold tabular-nums tracking-tight text-white ${large ? 'text-3xl md:text-5xl' : 'text-lg md:text-2xl'}`}>
+        {pad(time.days)}<span className="mx-0.5 opacity-50">:</span>{pad(time.hours)}<span className="mx-0.5 opacity-50">:</span>{pad(time.minutes)}<span className="mx-0.5 opacity-50">:</span>{pad(time.seconds)}
+      </div>
+      <div className={`mt-1 font-semibold uppercase tracking-widest text-blue-200 ${large ? 'text-xs' : 'text-[10px]'}`}>
+        {label}
+      </div>
+    </div>
+  );
+}
 
 export default function Header() {
+  const [tick, setTick] = useState(0);
+
+  useEffect(() => {
+    const id = setInterval(() => setTick((t) => t + 1), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  const challengeTime = getTimeLeft(CHALLENGE_CONFIG.challengeStartDate);
+  const baselineTime = getTimeLeft(CHALLENGE_CONFIG.baselineStartDate);
+
   return (
     <header className="mb-8 rounded-3xl border bg-gradient-to-br from-blue-600 to-indigo-700 p-6 text-white shadow-soft md:p-8">
-      <div className="grid gap-6 md:grid-cols-[1.4fr,1fr] md:items-end">
-        <div>
-          <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em]">
-            <Trophy className="h-4 w-4" />
-            NadaBarkada Fitness Challenge 
-          </div>
-        </div>
+      <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em]">
+        <Trophy className="h-4 w-4" />
+        NadaBarkada Fitness Challenge
+      </div>
 
-        <div className="md:col-span-2">
-          <h1 className="text-center text-3xl font-bold tracking-tight md:text-5xl">
-            <span className="block">{formatScheduleDate(SCHEDULE.baselineStart)} baseline.</span>
-            <span className="block">{formatScheduleDate(SCHEDULE.week1Start)} start.</span>
-            <span className="block">{formatScheduleDate(SCHEDULE.endDate)} finish.</span>
-          </h1>
-        </div>
+      <div className="flex flex-col items-center gap-6 sm:flex-row sm:items-end sm:justify-around">
+        <CountdownBlock
+          label={`Until challenge start · ${CHALLENGE_CONFIG.challengeStartDate}`}
+          time={challengeTime}
+          large
+        />
 
-        <div className="mx-auto grid w-full max-w-5xl gap-3 sm:grid-cols-3 md:col-span-2 md:max-w-3xl lg:max-w-5xl">
-          <div className="rounded-2xl bg-white/10 p-4 text-center backdrop-blur-sm">
-            <div className="mb-2 flex items-center justify-center gap-2 text-blue-100">
-              <CalendarDays className="h-4 w-4" />
-              Schedule
-            </div>
-            <div className="text-sm font-semibold">
-              {formatScheduleDateShort(SCHEDULE.baselineStart)} - {formatScheduleDateShort(SCHEDULE.endDate)}
-            </div>
-          </div>
-          <div className="rounded-2xl bg-white/10 p-4 text-center backdrop-blur-sm">
-            <div className="mb-2 flex items-center justify-center gap-2 text-blue-100">
-              <Activity className="h-4 w-4" />
-              Daily cap
-            </div>
-            <div className="text-sm font-semibold">10 points max</div>
-          </div>
-          <div className="rounded-2xl bg-white/10 p-4 text-center backdrop-blur-sm">
-            <div className="mb-2 flex items-center justify-center gap-2 text-blue-100">
-              <Trophy className="h-4 w-4" />
-              Goal
-            </div>
-            <div className="text-sm font-semibold">Consistency + improvement</div>
-          </div>
-        </div>
+        <div className="h-px w-full bg-white/20 sm:h-12 sm:w-px" />
+
+        <CountdownBlock
+          label={`Until baseline start · ${CHALLENGE_CONFIG.baselineStartDate}`}
+          time={baselineTime}
+          large={false}
+        />
       </div>
     </header>
   );

@@ -36,11 +36,17 @@ export default function App() {
   const [message, setMessage] = useState('');
   const [showRules, setShowRules] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
-  const [selectedParticipantId, setSelectedParticipantId] = useState('');
+  const STAY_LOGGED_IN_KEY = 'fitness-challenge:stay-logged-in-as';
+
+  const [selectedParticipantId, setSelectedParticipantId] = useState(
+    () => window.localStorage.getItem(STAY_LOGGED_IN_KEY) || ''
+  );
   const [confirmedParticipantId, setConfirmedParticipantId] = useState('');
   const [showNavMenu, setShowNavMenu] = useState(false);
   const [showParticipantMenu, setShowParticipantMenu] = useState(false);
-  const [authenticatedParticipantId, setAuthenticatedParticipantId] = useState('');
+  const [authenticatedParticipantId, setAuthenticatedParticipantId] = useState(
+    () => window.localStorage.getItem(STAY_LOGGED_IN_KEY) || ''
+  );
   const [showPinReminder, setShowPinReminder] = useState(false);
 
   async function loadAll() {
@@ -138,16 +144,25 @@ export default function App() {
     }
   }
 
-  async function handleAuthenticate(participantId, pin) {
+  async function handleAuthenticate(participantId, pin, stayLoggedIn = false) {
     const result = await verifyParticipantPin(participantId, pin);
     if (result.ok) {
       setAuthenticatedParticipantId(participantId);
+      if (stayLoggedIn) {
+        window.localStorage.setItem(STAY_LOGGED_IN_KEY, participantId);
+      }
       const pinChangedKey = `fitness-challenge:pin-changed:${participantId}`;
       if (!window.localStorage.getItem(pinChangedKey)) {
         setShowPinReminder(true);
       }
     }
     return result;
+  }
+
+  function handleLogout() {
+    setAuthenticatedParticipantId('');
+    setShowPinReminder(false);
+    window.localStorage.removeItem(STAY_LOGGED_IN_KEY);
   }
 
   function handlePinChanged(participantId) {
@@ -415,6 +430,7 @@ export default function App() {
               confirmedParticipantId={confirmedParticipantId}
               isAuthenticated={isAuthenticated}
               onAuthenticate={handleAuthenticate}
+              onLogout={handleLogout}
             />
           </div>
           <div id="my-rings" className="min-w-0">

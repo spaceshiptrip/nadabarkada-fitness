@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { ClipboardCheck, KeyRound, MessageSquare } from 'lucide-react';
+import { ClipboardCheck, KeyRound, LogOut, MessageSquare } from 'lucide-react';
 import {
   calculateActivityPoints,
   calculateWorkoutPoints,
@@ -36,11 +36,12 @@ const initialState = {
   notes: '',
 };
 
-export default function DailyLogForm({ participant, onSubmit, loading, confirmedParticipantId, isAuthenticated, onAuthenticate }) {
+export default function DailyLogForm({ participant, onSubmit, loading, confirmedParticipantId, isAuthenticated, onAuthenticate, onLogout }) {
   const [form, setForm] = useState(initialState);
   const [pinInput, setPinInput] = useState('');
   const [pinError, setPinError] = useState('');
   const [pinLoading, setPinLoading] = useState(false);
+  const [stayLoggedIn, setStayLoggedIn] = useState(false);
 
   const showConfirmedTitle =
     Boolean(participant && confirmedParticipantId && participant.id === confirmedParticipantId);
@@ -62,7 +63,7 @@ export default function DailyLogForm({ participant, onSubmit, loading, confirmed
     setPinError('');
     setPinLoading(true);
     try {
-      const result = await onAuthenticate(participant.id, pinInput.trim());
+      const result = await onAuthenticate(participant.id, pinInput.trim(), stayLoggedIn);
       if (!result.ok) {
         setPinError('Incorrect PIN. Try again.');
         setPinInput('');
@@ -106,7 +107,7 @@ export default function DailyLogForm({ participant, onSubmit, loading, confirmed
             alt={participant?.name || 'Participant'}
             className="h-12 w-12 flex-shrink-0 rounded-full border object-cover"
           />
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <CardTitle className="flex items-center gap-2">
               <ClipboardCheck className="h-5 w-5" />
               {participant
@@ -114,6 +115,18 @@ export default function DailyLogForm({ participant, onSubmit, loading, confirmed
                 : 'Daily log entry'}
             </CardTitle>
           </div>
+          {isAuthenticated && onLogout && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={onLogout}
+              className="flex-shrink-0 text-muted-foreground hover:text-foreground"
+            >
+              <LogOut className="mr-1.5 h-4 w-4" />
+              Log out
+            </Button>
+          )}
         </div>
         <CardDescription>
           {!participant
@@ -176,6 +189,15 @@ export default function DailyLogForm({ participant, onSubmit, loading, confirmed
                 <p className="text-center text-xs font-medium text-red-600">{pinError}</p>
               )}
             </div>
+            <label className="flex cursor-pointer items-center justify-center gap-2 text-xs text-slate-500">
+              <input
+                type="checkbox"
+                className="h-3.5 w-3.5 rounded border"
+                checked={stayLoggedIn}
+                onChange={(e) => setStayLoggedIn(e.target.checked)}
+              />
+              Stay logged in on this device
+            </label>
             <Button type="submit" disabled={pinLoading || !pinInput.trim()}>
               {pinLoading ? 'Verifying…' : 'Unlock'}
             </Button>
