@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/button';
 import {
   addParticipant,
   changeParticipantPin,
+  deleteLogEntry,
   getDailyLogs,
   getLeaderboard,
   getParticipants,
@@ -199,6 +200,22 @@ export default function App() {
     window.localStorage.setItem(`fitness-challenge:pin-changed:${participantId}`, '1');
     setShowPinReminder(false);
     loadAll();
+  }
+
+  async function handleDeleteLog(participantId, date) {
+    try {
+      const result = await deleteLogEntry(participantId, date);
+      if (result.ok) {
+        await loadAll();
+        toast.success('Entry deleted.', { description: `Log for ${formatFriendlyDate(date)} has been removed.` });
+      } else {
+        toast.error('Could not delete entry.', { description: result.error || 'Please try again.' });
+      }
+      return result;
+    } catch (err) {
+      toast.error('Could not delete entry.', { description: 'Check your connection and try again.' });
+      return { ok: false };
+    }
   }
 
   async function handleAdminUpdateParticipant(payload) {
@@ -549,6 +566,7 @@ export default function App() {
               participant={selectedParticipant}
               participantLogs={selectedParticipantLogs}
               onSubmit={handleLogEntry}
+              onDelete={handleDeleteLog}
               loading={submittingLog}
               confirmedParticipantId={confirmedParticipantId}
               isAuthenticated={isAuthenticated}

@@ -287,3 +287,18 @@ export async function logDailyEntry(payload) {
   }
   return postJson({ action: 'logDailyEntry', ...payload });
 }
+
+export async function deleteLogEntry(participantId, date) {
+  if (!APP_SCRIPT_URL) {
+    const logs = loadMockDailyLogs().filter(
+      (entry) =>
+        !(
+          String(entry.participantId || '').trim() === String(participantId || '').trim() &&
+          entry.date === date
+        )
+    );
+    setStoredJson(MOCK_DAILY_LOGS_KEY, logs);
+    return { ok: true, source: 'mock' };
+  }
+  return postJson({ action: 'deleteLogEntry', participantId, date });
+}
