@@ -3,7 +3,7 @@ const PIN_SALT_PROPERTY_KEY = 'FITNESS_PIN_SALT_V1';
 const DEFAULT_PIN = '1234';
 const PARTICIPANTS_SHEET = 'Participants';
 const DAILY_LOGS_SHEET = 'DailyLogs';
-const PARTICIPANT_HEADERS = ['UserId', 'Name', 'DeviceType', 'TeamName', 'BaselineActiveMinutes', 'BaselineSteps', 'Active', 'CreatedAt', 'ProfileImage', 'BaselineOverride', 'PhoneNumber', 'Pin'];
+const PARTICIPANT_HEADERS = ['UserId', 'Name', 'DeviceType', 'TeamName', 'BaselineActiveMinutes', 'BaselineSteps', 'Active', 'CreatedAt', 'ProfileImage', 'BaselineOverride', 'PhoneNumber', 'Pin', 'Role'];
 const DAILY_LOG_HEADERS = ['Date', 'ParticipantId', 'Name', 'ActiveMinutes', 'WorkoutDone', 'Steps', 'MobilityDone', 'Notes', 'DailyPoints', 'ChallengeWeek', 'CreatedAt'];
 
 const BASELINE_START = new Date('2026-04-27T00:00:00');
@@ -54,6 +54,11 @@ function doPost(e) {
       return json_(result);
     }
 
+    if (action === 'changeParticipantPin') {
+      const result = changeParticipantPin_(payload);
+      return json_(result);
+    }
+
     return json_({ ok: false, error: 'Unknown action' });
   } catch (error) {
     return json_({ ok: false, error: String(error) });
@@ -85,7 +90,8 @@ function addParticipant_(payload) {
     payload.profileImage || '',
     toBool_(payload.baselineOverride),
     payload.phoneNumber || '',
-    payload.pin || '',
+    payload.pin ? sha256Hex_(getPinSalt_() + ':' + String(payload.pin).trim()) : '',
+    payload.role || 'participant',
   ];
 
   sheet.appendRow(row);
@@ -168,6 +174,7 @@ function getParticipants_() {
       baselineOverride: participant.baselineOverride,
       phoneNumber: participant.phoneNumber || '',
       active: participant.active,
+      role: participant.role || 'participant',
     };
     });
 }
@@ -439,6 +446,7 @@ function getParticipantsRaw_() {
         baselineOverride: toBool_(row.BaselineOverride),
         phoneNumber: row.PhoneNumber || '',
         pin: row.Pin || '',
+        role: String(row.Role || '').trim().toLowerCase() || 'participant',
         active: normalizeActiveFlag_(row.Active),
       };
     });
@@ -648,6 +656,32 @@ function generateParticipantPinHash(pin) {
   var hash = sha256Hex_(salt + ':' + participantPin);
   Logger.log('PIN hash for PIN "' + participantPin + '": ' + hash);
   return hash;
+}
+
+function changeParticipantPin_(payload) {
+  var participantId = String(payload.participantId || '').trim();
+  var newPin = String(payload.newPin || '').trim();
+  if (!participantId || !newPin) return { ok: false, error: 'bad_request' };
+
+  var salt = getPinSalt_();
+  var newHash = sha256Hex_(salt + ':' + newPin);
+
+  var sheet = getSheet_(PARTICIPANTS_SHEET);
+  var values = sheet.getDataRange().getValues();
+  if (!values || values.length < 2) return { ok: false, error: 'not_found' };
+
+  var headers = values[0];
+  var userIdIndex = headers.indexOf('UserId');
+  var pinIndex = headers.indexOf('Pin');
+
+  for (var i = 1; i < values.length; i++) {
+    if (String(values[i][userIdIndex] || '').trim() === participantId) {
+      sheet.getRange(i + 1, pinIndex + 1).setValue(newHash);
+      return { ok: true, source: 'live' };
+    }
+  }
+
+  return { ok: false, error: 'not_found' };
 }
 
 function formatDate_(value) {

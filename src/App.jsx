@@ -1,14 +1,17 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ChevronDown, ChevronUp, Menu, X } from 'lucide-react';
+import { ChevronDown, ChevronUp, KeyRound, Menu, X } from 'lucide-react';
 import Header from '@/components/Header';
 import RulesCard from '@/components/RulesCard';
 import ProfilePanel from '@/components/ProfilePanel';
+import AdminPanel from '@/components/AdminPanel';
 import DailyLogForm from '@/components/DailyLogForm';
 import LeaderboardTable from '@/components/LeaderboardTable';
 import MyRingsPanel from '@/components/MyRingsPanel';
 import WeekRingsCalendar from '@/components/WeekRingsCalendar';
 import { Button } from '@/components/ui/button';
 import {
+  addParticipant,
+  changeParticipantPin,
   getDailyLogs,
   getLeaderboard,
   getParticipants,
@@ -38,6 +41,7 @@ export default function App() {
   const [showNavMenu, setShowNavMenu] = useState(false);
   const [showParticipantMenu, setShowParticipantMenu] = useState(false);
   const [authenticatedParticipantId, setAuthenticatedParticipantId] = useState('');
+  const [showPinReminder, setShowPinReminder] = useState(false);
 
   async function loadAll() {
     try {
@@ -130,6 +134,7 @@ export default function App() {
     }
     if (nextParticipantId !== authenticatedParticipantId) {
       setAuthenticatedParticipantId('');
+      setShowPinReminder(false);
     }
   }
 
@@ -137,9 +142,34 @@ export default function App() {
     const result = await verifyParticipantPin(participantId, pin);
     if (result.ok) {
       setAuthenticatedParticipantId(participantId);
+      const pinChangedKey = `fitness-challenge:pin-changed:${participantId}`;
+      if (!window.localStorage.getItem(pinChangedKey)) {
+        setShowPinReminder(true);
+      }
     }
     return result;
   }
+
+  function handlePinChanged(participantId) {
+    window.localStorage.setItem(`fitness-challenge:pin-changed:${participantId}`, '1');
+    setShowPinReminder(false);
+  }
+
+  async function handleAdminAddParticipant(payload) {
+    const result = await addParticipant(payload);
+    if (result.ok) await loadAll();
+    return result;
+  }
+
+  async function handleAdminResetPin(participantId) {
+    const result = await changeParticipantPin(participantId, '0000');
+    // Clear the "already changed" flag so they get the reminder on next login
+    window.localStorage.removeItem(`fitness-challenge:pin-changed:${participantId}`);
+    return result;
+  }
+
+  const isAuthenticated = !!selectedParticipantId && selectedParticipantId === authenticatedParticipantId;
+  const isAdmin = isAuthenticated && selectedParticipant?.role === 'admin';
 
   function scrollToSection(sectionId) {
     const element = document.getElementById(sectionId);
@@ -245,7 +275,8 @@ export default function App() {
                 ['Daily Log Entry', 'daily-log-entry'],
                 ['My Rings', 'my-rings'],
                 ['Leaderboard', 'leaderboard'],
-                ['My Profile', 'profile-panel'],
+                ...(isAuthenticated ? [['My Profile', 'profile-panel']] : []),
+                ...(isAdmin ? [['Admin Panel', 'admin-panel']] : []),
               ].map(([label, id]) => (
                 <button
                   key={id}
@@ -309,7 +340,7 @@ export default function App() {
         </div>
       )}
 
-      {selectedParticipant && selectedParticipant.profileImage === DEFAULT_PROFILE_IMAGE && (
+      {selectedParticipant && isAuthenticated && selectedParticipant.profileImage === DEFAULT_PROFILE_IMAGE && (
         <div className="mb-6 flex flex-wrap items-center gap-4 rounded-2xl border border-amber-200 bg-amber-50 p-4">
           <img
             src={getParticipantProfileImage('')}
@@ -334,6 +365,40 @@ export default function App() {
         </div>
       )}
 
+      {showPinReminder && selectedParticipant && (
+        <div className="mb-6 flex flex-wrap items-center gap-4 rounded-2xl border border-indigo-200 bg-indigo-50 p-4">
+          <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-indigo-100">
+            <KeyRound className="h-5 w-5 text-indigo-600" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="text-sm font-semibold text-indigo-900">
+              Change your PIN
+            </div>
+            <div className="text-sm text-indigo-700">
+              You're using a default PIN. Head to My Profile to set a personal one.
+            </div>
+          </div>
+          <div className="flex flex-shrink-0 gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="border-indigo-300 text-indigo-800 hover:bg-indigo-100 hover:text-indigo-900"
+              onClick={() => { setShowProfile(true); scrollToSection('profile-panel'); }}
+            >
+              Go to My Profile
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-indigo-500 hover:bg-indigo-100 hover:text-indigo-700"
+              onClick={() => setShowPinReminder(false)}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      )}
+
       <div className="mb-8 space-y-8">
         <div className="grid gap-6 xl:grid-cols-2">
           <div id="daily-log-entry" className="min-w-0">
@@ -342,7 +407,7 @@ export default function App() {
               onSubmit={handleLogEntry}
               loading={submittingLog}
               confirmedParticipantId={confirmedParticipantId}
-              isAuthenticated={!!selectedParticipantId && selectedParticipantId === authenticatedParticipantId}
+              isAuthenticated={isAuthenticated}
               onAuthenticate={handleAuthenticate}
             />
           </div>
@@ -351,7 +416,7 @@ export default function App() {
               participants={derivedParticipants}
               logs={dailyLogs}
               selectedParticipantId={selectedParticipantId}
-              isAuthenticated={!!selectedParticipantId && selectedParticipantId === authenticatedParticipantId}
+              isAuthenticated={isAuthenticated}
             />
           </div>
         </div>
@@ -375,16 +440,29 @@ export default function App() {
         </div>
       </div>
 
+      {isAdmin && (
+        <div id="admin-panel" className="mb-6">
+          <AdminPanel
+            participants={derivedParticipants}
+            onResetPin={handleAdminResetPin}
+            onAddParticipant={handleAdminAddParticipant}
+          />
+        </div>
+      )}
+
       <div id="profile-panel" className="mb-6 rounded-2xl border bg-white p-4 shadow-soft">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="section-title">My Profile</h2>
             <p className="section-subtitle">
-              Update your display name and profile picture.
+              {isAuthenticated
+                ? 'Update your display name, profile picture, and PIN.'
+                : 'Authenticate in Daily Log to access your profile.'}
             </p>
           </div>
           <Button
             variant="outline"
+            disabled={!isAuthenticated}
             onClick={() => setShowProfile((current) => !current)}
             aria-expanded={showProfile}
           >
@@ -394,12 +472,12 @@ export default function App() {
         </div>
       </div>
 
-      {showProfile && (
+      {isAuthenticated && showProfile && (
         <ProfilePanel
           key={selectedParticipant?.id}
           participant={selectedParticipant}
-          participants={derivedParticipants}
           onUpdateProfile={handleUpdateParticipant}
+          onPinChanged={handlePinChanged}
           loading={loadingParticipants}
         />
       )}

@@ -1,10 +1,12 @@
 import { useRef, useState } from 'react';
-import { UserCircle } from 'lucide-react';
+import { UserCircle, KeyRound } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { getParticipantProfileImage } from '@/lib/participants';
+// participants prop removed — roster panel was moved to AdminPanel
+import { changeParticipantPin } from '@/lib/api';
 
 function readFileAsDataUrl(file) {
   return new Promise((resolve, reject) => {
@@ -37,7 +39,7 @@ async function resizeProfileImage(file) {
   });
 }
 
-export default function ProfilePanel({ participant, participants, onUpdateProfile, loading }) {
+export default function ProfilePanel({ participant, onUpdateProfile, onPinChanged, loading }) {
   const [form, setForm] = useState({
     name: participant?.name || '',
     deviceType: participant?.deviceType || 'Garmin',
@@ -46,6 +48,11 @@ export default function ProfilePanel({ participant, participants, onUpdateProfil
   const [imageError, setImageError] = useState('');
   const [saved, setSaved] = useState(false);
   const fileInputRef = useRef(null);
+
+  const [pinForm, setPinForm] = useState({ newPin: '', confirmPin: '' });
+  const [pinError, setPinError] = useState('');
+  const [pinSaved, setPinSaved] = useState(false);
+  const [pinLoading, setPinLoading] = useState(false);
 
   const previewImage = form.profileImage || getParticipantProfileImage(participant?.profileImage);
 
@@ -86,6 +93,28 @@ export default function ProfilePanel({ participant, participants, onUpdateProfil
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
+  const submitPin = async (event) => {
+    event.preventDefault();
+    if (!participant) return;
+    const { newPin, confirmPin } = pinForm;
+    if (!newPin.trim()) { setPinError('Please enter a new PIN.'); return; }
+    if (newPin !== confirmPin) { setPinError('PINs do not match. Please try again.'); return; }
+    setPinError('');
+    setPinLoading(true);
+    try {
+      const result = await changeParticipantPin(participant.id, newPin.trim());
+      if (!result.ok) { setPinError(result.error || 'Failed to update PIN.'); return; }
+      setPinSaved(true);
+      setPinForm({ newPin: '', confirmPin: '' });
+      if (onPinChanged) onPinChanged(participant.id);
+      setTimeout(() => setPinSaved(false), 3000);
+    } catch (err) {
+      setPinError('An error occurred. Please try again.');
+    } finally {
+      setPinLoading(false);
+    }
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -99,8 +128,9 @@ export default function ProfilePanel({ participant, participants, onUpdateProfil
             : 'Select a participant from the header to edit your profile.'}
         </CardDescription>
       </CardHeader>
-      <CardContent className="grid gap-6 xl:grid-cols-2">
+      <CardContent>
         {participant ? (
+          <div className="grid min-w-0 gap-6 xl:grid-cols-2">
           <form onSubmit={submit} className="grid min-w-0 gap-4 rounded-2xl border bg-slate-50 p-4">
             <div className="flex items-center gap-4 rounded-2xl border bg-white p-3">
               <img
@@ -173,45 +203,51 @@ export default function ProfilePanel({ participant, participants, onUpdateProfil
               {loading ? 'Saving...' : saved ? 'Saved!' : 'Save profile'}
             </Button>
           </form>
+
+          <form onSubmit={submitPin} className="grid min-w-0 gap-4 rounded-2xl border bg-slate-50 p-4">
+            <div className="flex items-center gap-2 text-sm font-semibold text-slate-800">
+              <KeyRound className="h-4 w-4" />
+              Change PIN
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="new-pin">New PIN</Label>
+              <Input
+                id="new-pin"
+                type="password"
+                inputMode="numeric"
+                value={pinForm.newPin}
+                onChange={(e) => setPinForm((prev) => ({ ...prev, newPin: e.target.value }))}
+                placeholder="Enter new PIN"
+                autoComplete="new-password"
+              />
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="confirm-pin">Confirm new PIN</Label>
+              <Input
+                id="confirm-pin"
+                type="password"
+                inputMode="numeric"
+                value={pinForm.confirmPin}
+                onChange={(e) => setPinForm((prev) => ({ ...prev, confirmPin: e.target.value }))}
+                placeholder="Re-enter new PIN"
+                autoComplete="new-password"
+              />
+            </div>
+
+            {pinError && <div className="text-xs text-red-600">{pinError}</div>}
+
+            <Button type="submit" disabled={pinLoading}>
+              {pinLoading ? 'Saving...' : pinSaved ? 'PIN updated!' : 'Update PIN'}
+            </Button>
+          </form>
+          </div>
         ) : (
           <div className="flex items-center justify-center rounded-2xl border bg-slate-50 p-8 text-sm text-muted-foreground">
             Select a participant from the header to edit your profile.
           </div>
         )}
-
-        <div className="rounded-2xl border bg-white p-4">
-          <div className="mb-3 text-sm font-semibold text-slate-800">Challenge roster</div>
-          <div className="space-y-2">
-            {participants.length === 0 && (
-              <div className="text-sm text-muted-foreground">No participants yet.</div>
-            )}
-            {participants.map((p) => (
-              <div
-                key={p.id || p.name}
-                className={`flex items-center gap-3 rounded-xl border p-3 transition-colors ${
-                  p.id === participant?.id ? 'border-primary/30 bg-primary/5' : ''
-                }`}
-              >
-                <img
-                  src={getParticipantProfileImage(p.profileImage)}
-                  alt={p.name}
-                  className="h-10 w-10 flex-shrink-0 rounded-full border object-cover"
-                />
-                <div className="min-w-0 flex-1">
-                  <div className="truncate text-sm font-medium">{p.name}</div>
-                  <div className="truncate text-xs text-muted-foreground">
-                    {p.deviceType}{p.teamName ? ` • ${p.teamName}` : ''}
-                  </div>
-                </div>
-                {p.id === participant?.id && (
-                  <span className="flex-shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">
-                    You
-                  </span>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
       </CardContent>
     </Card>
   );

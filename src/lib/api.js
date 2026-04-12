@@ -255,6 +255,18 @@ export async function verifyParticipantPin(participantId, pin) {
   return postJson({ action: 'verifyParticipantPin', participantId, pin });
 }
 
+export async function changeParticipantPin(participantId, newPin) {
+  if (!APP_SCRIPT_URL) {
+    const participants = loadMockParticipants();
+    const participant = participants.find((p) => p.id === participantId);
+    if (!participant) return { ok: false, error: 'not_found' };
+    const updated = { ...participant, pin: newPin };
+    setStoredJson(MOCK_PARTICIPANTS_KEY, participants.map((p) => (p.id === participantId ? updated : p)));
+    return { ok: true, source: 'mock' };
+  }
+  return postJson({ action: 'changeParticipantPin', participantId, newPin });
+}
+
 export async function logDailyEntry(payload) {
   if (!APP_SCRIPT_URL) {
     const nextEntry = withComputedDailyPoints(payload);
