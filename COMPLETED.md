@@ -327,3 +327,105 @@ After redeploying the Apps Script (Version 2, Apr 11 2026), the new web app URL 
 - `.env.production` — `VITE_APP_SCRIPT_URL` (used at build time for GitHub Pages deploy)
 
 New deployment ID: `AKfycbw21r9qqPHrekgAXG4OXIiJFsrnI6F_4Hml94fbKzYV40hV8MARWWRNMVDRoCYb9Pao1A`
+
+---
+
+## 2026-04-11 Session
+
+---
+
+### 15. Auth, Logout, and PIN Flow
+
+**Files changed:** `src/App.jsx`, `src/components/DailyLogForm.jsx`, `src/components/ProfilePanel.jsx`
+
+- `handleLogout()` now clears `selectedParticipantId` (in addition to `authenticatedParticipantId`) so the header resets to "Select Participant" on logout.
+- "Stay logged in" checkbox in the PIN form persists `participantId` to `localStorage`; both auth state values initialize from localStorage on load.
+- Logout button added inside `DailyLogForm` card header (visible when authenticated).
+- `handlePinChanged()` now calls `loadAll()` after setting the localStorage flag, refreshing data after every PIN update.
+- PIN reminder banner (indigo): shown on first login when `pin-changed` flag is absent from localStorage; auto-opens My Profile and scrolls to it; dismissed after PIN is changed or banner is closed.
+- Bouncing indigo bubble added to the PIN change form in `ProfilePanel` when `showPinReminder` is active (`showPinBubble` prop).
+
+---
+
+### 16. Global Server Spinner
+
+**Files changed:** `src/App.jsx`
+
+Added `isFetching`, `isAuthenticating` states. Derived `serverBusy = isFetching || isAuthenticating || loadingParticipants || submittingLog`. A `Loader2` spinning icon appears in the center of the top nav title during any server communication.
+
+---
+
+### 17. Bouncing "Select Participant" Bubble
+
+**Files changed:** `src/App.jsx`
+
+When no participant is selected and the dropdown is closed, an animated white speech bubble (`animate-bounce`) appears below the participant avatar button saying "Select participant", with a downward-pointing triangle arrow. Hidden once the menu opens or a participant is chosen.
+
+---
+
+### 18. Mobile Auto-Scroll Behaviors
+
+**Files changed:** `src/App.jsx`
+
+- On screens narrower than 768px: selecting a participant (but not yet authenticated) smooth-scrolls to `#daily-log-entry` for PIN entry.
+- When `showPinReminder` fires after first login: auto-opens My Profile (`setShowProfile(true)`) and smooth-scrolls to `#profile-panel`.
+
+---
+
+### 19. Header — Countdown Timers + Milestone Dates
+
+**Files changed:** `src/components/Header.jsx`
+
+Replaced schedule/goal cards with:
+- Two live countdown timers (DD:HH:MM:SS) — large for challenge start, smaller for baseline start. Ticks every second via `setInterval`.
+- Milestone cards row (3-column grid on sm+): 📋 Baseline Week, 🟢 Week 1 Starts, 🏆 Challenge Ends — each showing the date large and bold (`text-xl`/`text-2xl`) with emoji and label.
+- Dates read from `CHALLENGE_CONFIG` so no hardcoding.
+
+---
+
+### 20. Leaderboard & Weekly Rings — Pre-Challenge Lock State
+
+**Files changed:** `src/components/LeaderboardTable.jsx`, `src/components/WeekRingsCalendar.jsx`
+
+Both components compute `challengeActive = new Date() >= new Date(challengeStartDate + 'T00:00:00')`. When false, they show a lock icon with "Challenge not active yet — unlocks 2026-05-04" instead of data. Automatically reveals on May 4.
+
+---
+
+### 21. Admin Panel — Collapsible, Repositioned, Red Border
+
+**Files changed:** `src/App.jsx`
+
+- Admin Panel moved to after My Profile in page order.
+- Collapsible toggle header with `border-2 border-red-400` and red-tinted button; collapsed by default (`showAdmin = false`).
+- Nav menu order updated to reflect new position.
+
+---
+
+### 22. Admin Panel — Avatar Edit
+
+**Files changed:** `src/components/AdminPanel.jsx`
+
+Added avatar upload to the participant edit detail pane. Mirrors the Add Participant photo upload (file input → `resizeProfileImage` canvas resize → base64). Image is only sent in the `updateParticipant` payload if a new file is chosen; existing avatar is preserved otherwise. Edit form state includes `profileImage: ''`; cleared when selection changes.
+
+---
+
+### 23. Participant Dropdown — Alphabetical Order
+
+**Files changed:** `src/App.jsx`
+
+Participant list in the header dropdown now sorted A→Z via `[...derivedParticipants].sort((a, b) => a.name.localeCompare(b.name))`.
+
+---
+
+### 24. Daily Log — Collapsible Instructions + Tooltips
+
+**Files changed:** `src/components/DailyLogForm.jsx`
+
+Added collapsible "How to log your day" section (collapsed by default) at top of log form containing:
+- Active Minutes guidance: examples include workouts, walks, biking, sports, pacing on calls, yard/housework. Amber callout: standing desk (passive) doesn't count; pacing/walking meetings do.
+- Steps guidance: check phone Health app, Garmin, or Apple Watch at end of day.
+- Log totals throughout the day or all at once at the end.
+
+Workout Session and Self-Care checkboxes each have a blue `i` circle button (`InfoTooltip` component) that shows a floating tooltip on hover (desktop) and tap-toggle (mobile):
+- Workout: "A purposeful workout session of 20+ minutes — gym, run, swim, fitness class, home workout, etc."
+- Self-Care: "5+ minutes of intentional recovery — yoga, stretching, foam rolling, meditation, breathing exercises, ice bath, or massage."
