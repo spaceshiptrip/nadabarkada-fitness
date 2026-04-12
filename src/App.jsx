@@ -325,7 +325,7 @@ export default function App() {
             {showParticipantMenu && (
               <>
                 <div className="fixed inset-0 z-40" onClick={() => setShowParticipantMenu(false)} />
-                <div className="absolute right-0 top-full z-50 mt-3 w-64 rounded-2xl border border-white/20 bg-gradient-to-b from-blue-600 to-indigo-700 p-2 shadow-soft">
+                <div className="absolute right-0 top-full z-50 mt-3 w-64 rounded-2xl border border-white/20 bg-gradient-to-b from-blue-600 to-indigo-700 p-2 shadow-soft" style={{ maxHeight: 'min(420px, calc(100dvh - 100px))', overflowY: 'auto', overscrollBehavior: 'contain' }}>
                   {isAuthenticated ? (
                     <>
                       <div className="flex items-center gap-3 rounded-xl bg-white/10 px-3 py-2">

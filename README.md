@@ -285,6 +285,9 @@ High level:
 - On mobile, use an `sms:` link with a prefilled body.
 - On desktop, also show the phone number and a copyable fallback in case SMS deep linking is not available.
 - Create a Profile/Settings panel so a selected participant can update their displayed name and profile picture.
+- Add a proper settings menu triggered from a three-vertical-dots control.
+- Move participant-facing settings and profile actions into that menu-driven settings area.
+- Add dark mode support and make it configurable from settings.
 - Once a participant is selected, repurpose the current admin/profile area into a participant-facing Profile panel.
 - Make sure profile changes do not change the participant's stable `ParticipantId`.
 - Keep phone number and PIN fields in the backend schema for future use, even if login is not enabled yet.
