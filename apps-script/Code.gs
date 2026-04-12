@@ -1,5 +1,6 @@
 const SPREADSHEET_ID = '1wqTMjXCBFA8PZg2L5Tg0WLZPAxO_TEantDIeNenRdZ4';
 const PIN_SALT_PROPERTY_KEY = 'FITNESS_PIN_SALT_V1';
+const DEFAULT_PIN = '1234';
 const PARTICIPANTS_SHEET = 'Participants';
 const DAILY_LOGS_SHEET = 'DailyLogs';
 const PARTICIPANT_HEADERS = ['UserId', 'Name', 'DeviceType', 'TeamName', 'BaselineActiveMinutes', 'BaselineSteps', 'Active', 'CreatedAt', 'ProfileImage', 'BaselineOverride', 'PhoneNumber', 'Pin'];
@@ -641,11 +642,12 @@ function setPinSalt_() {
  *   2. Run generateParticipantPinHash from the editor
  *   3. Copy the logged hash into the Pin column for that participant row
  */
-function generateParticipantPinHash() {
-  var participantPin = '1234'; // <-- change this to the PIN you want
+function generateParticipantPinHash(pin) {
+  var participantPin = (pin !== undefined && String(pin).trim()) ? String(pin).trim() : DEFAULT_PIN;
   var salt = getPinSalt_();
   var hash = sha256Hex_(salt + ':' + participantPin);
-  Logger.log('PIN hash: ' + hash);
+  Logger.log('PIN hash for PIN "' + participantPin + '": ' + hash);
+  return hash;
 }
 
 function formatDate_(value) {
