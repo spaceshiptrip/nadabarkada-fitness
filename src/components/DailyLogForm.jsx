@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ChevronDown, ChevronUp, ClipboardCheck, Info, KeyRound, LogOut, MessageSquare } from 'lucide-react';
+import { ChevronDown, ChevronUp, ClipboardCheck, Info, KeyRound, LogOut, MessageSquare, Trash2 } from 'lucide-react';
 import {
   calculateActivityPoints,
   calculateWorkoutPoints,
@@ -60,9 +60,17 @@ const initialState = {
   notes: '',
 };
 
-export default function DailyLogForm({ participant, participantLogs, onSubmit, loading, confirmedParticipantId, isAuthenticated, isAdmin, onAuthenticate, onLogout, onDateChange }) {
+function friendlyDate(isoStr) {
+  if (!isoStr) return '';
+  const [y, m, d] = isoStr.split('-').map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+export default function DailyLogForm({ participant, participantLogs, onSubmit, onDelete, loading, confirmedParticipantId, isAuthenticated, isAdmin, onAuthenticate, onLogout, onDateChange }) {
   const [form, setForm] = useState(initialState);
   const [showInstructions, setShowInstructions] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [pinInput, setPinInput] = useState('');
   const [pinError, setPinError] = useState('');
   const [pinLoading, setPinLoading] = useState(false);
@@ -391,10 +399,78 @@ export default function DailyLogForm({ participant, participantLogs, onSubmit, l
               />
             </div>
 
-            <Button type="submit" disabled={loading}>
-              {loading ? 'Saving...' : existingEntry ? 'Update entry' : 'Submit daily log'}
-            </Button>
+            <div className="flex gap-2">
+              <Button type="submit" disabled={loading} className="flex-1">
+                {loading ? 'Saving...' : existingEntry ? 'Update entry' : 'Submit daily log'}
+              </Button>
+              {existingEntry && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="flex-shrink-0 border-red-200 text-red-500 hover:bg-red-50 hover:text-red-700"
+                  onClick={() => setShowDeleteModal(true)}
+                  aria-label="Delete this entry"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
           </form>
+
+          {/* Delete confirmation modal */}
+          {showDeleteModal && existingEntry && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+              <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowDeleteModal(false)} />
+              <div className="relative w-full max-w-sm rounded-3xl border bg-white p-6 shadow-2xl">
+                <div className="mb-4 flex items-center gap-3">
+                  <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-red-100">
+                    <Trash2 className="h-6 w-6 text-red-600" />
+                  </div>
+                  <div>
+                    <div className="font-bold text-slate-900">Delete this entry?</div>
+                    <div className="text-sm text-slate-500">{friendlyDate(existingEntry.date)}</div>
+                  </div>
+                </div>
+
+                <div className="mb-4 rounded-2xl border bg-slate-50 p-3 text-sm space-y-1 text-slate-700">
+                  <div className="flex justify-between"><span>Active minutes</span><span className="font-semibold">{existingEntry.activeMinutes ?? 0} min</span></div>
+                  <div className="flex justify-between"><span>Steps</span><span className="font-semibold">{(existingEntry.steps ?? 0).toLocaleString()}</span></div>
+                  <div className="flex justify-between"><span>Workout session</span><span className="font-semibold">{existingEntry.workoutDone ? '✓ Yes' : 'No'}</span></div>
+                  <div className="flex justify-between"><span>Self-Care</span><span className="font-semibold">{existingEntry.mobilityDone ? '✓ Yes' : 'No'}</span></div>
+                  <div className="flex justify-between border-t pt-1 mt-1"><span className="font-semibold">Daily points</span><span className="font-bold text-primary">{existingEntry.dailyPoints ?? '—'} pts</span></div>
+                  {existingEntry.notes && <div className="pt-1 text-xs text-slate-500 italic">"{existingEntry.notes}"</div>}
+                </div>
+
+                <div className="mb-5 rounded-2xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+                  ⚠️ This is <strong>permanent</strong>. Once deleted, this entry and its points are gone for good — there's no undo.
+                </div>
+
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() => setShowDeleteModal(false)}
+                    disabled={deleting}
+                  >
+                    Keep it
+                  </Button>
+                  <Button
+                    className="flex-1 bg-red-600 text-white hover:bg-red-700"
+                    disabled={deleting}
+                    onClick={async () => {
+                      setDeleting(true);
+                      const result = await onDelete?.(participant.id, existingEntry.date);
+                      setDeleting(false);
+                      if (result?.ok) setShowDeleteModal(false);
+                    }}
+                  >
+                    {deleting ? 'Deleting…' : 'Yes, delete it'}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="space-y-4 rounded-2xl border bg-white p-4">
             <div>

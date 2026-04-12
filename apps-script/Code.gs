@@ -59,6 +59,11 @@ function doPost(e) {
       return json_(result);
     }
 
+    if (action === 'deleteLogEntry') {
+      const result = deleteLogEntry_(payload);
+      return json_(result);
+    }
+
     return json_({ ok: false, error: 'Unknown action' });
   } catch (error) {
     return json_({ ok: false, error: String(error) });
@@ -503,6 +508,29 @@ function upsertDailyLogRow_(sheet, participantId, date, rowValues) {
   }
 
   sheet.appendRow(rowValues);
+}
+
+function deleteLogEntry_(payload) {
+  if (!payload.participantId || !payload.date) throw new Error('participantId and date are required.');
+  const sheet = getSheet_(DAILY_LOGS_SHEET);
+  const values = sheet.getDataRange().getValues();
+  if (!values || values.length < 2) return { ok: false, error: 'No log entries found.' };
+
+  const headers = values[0];
+  const participantIdIndex = headers.indexOf('ParticipantId');
+  const dateIndex = headers.indexOf('Date');
+
+  for (var i = 1; i < values.length; i += 1) {
+    var existingParticipantId = String(values[i][participantIdIndex] || '').trim();
+    var existingDate = formatDate_(values[i][dateIndex]);
+
+    if (existingParticipantId === String(payload.participantId).trim() && existingDate === String(payload.date).trim()) {
+      sheet.deleteRow(i + 1);
+      return { ok: true, deleted: { participantId: payload.participantId, date: payload.date } };
+    }
+  }
+
+  return { ok: false, error: 'Log entry not found.' };
 }
 
 function ensureHeaders_(sheet, headers) {
