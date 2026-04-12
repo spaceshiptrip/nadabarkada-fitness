@@ -1,6 +1,9 @@
-import { Trophy } from 'lucide-react';
+import { Lock, Trophy } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { getParticipantProfileImage } from '@/lib/participants';
+import { CHALLENGE_CONFIG } from '@/lib/config';
+
+const challengeActive = new Date() >= new Date(CHALLENGE_CONFIG.challengeStartDate + 'T00:00:00');
 
 export default function LeaderboardTable({
   rows,
@@ -19,7 +22,15 @@ export default function LeaderboardTable({
       </CardHeader>
       <CardContent>
         <div className="space-y-2">
-          {rows.length === 0 ? (
+          {!challengeActive ? (
+            <div className="flex flex-col items-center gap-3 rounded-2xl border bg-slate-50 py-10 text-center">
+              <Lock className="h-8 w-8 text-slate-300" />
+              <div className="text-base font-semibold text-slate-600">Challenge not active yet</div>
+              <div className="text-sm text-muted-foreground">
+                Standings unlock on <span className="font-semibold text-slate-700">{CHALLENGE_CONFIG.challengeStartDate}</span>
+              </div>
+            </div>
+          ) : rows.length === 0 ? (
             <div className="py-8 text-center text-sm text-muted-foreground">
               No leaderboard data yet.
             </div>

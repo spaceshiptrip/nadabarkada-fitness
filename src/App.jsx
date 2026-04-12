@@ -39,6 +39,7 @@ export default function App() {
   const [message, setMessage] = useState('');
   const [showRules, setShowRules] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
+  const [showAdmin, setShowAdmin] = useState(false);
   const STAY_LOGGED_IN_KEY = 'fitness-challenge:stay-logged-in-as';
 
   const [selectedParticipantId, setSelectedParticipantId] = useState(
@@ -337,7 +338,7 @@ export default function App() {
                         <span className="text-blue-100">Select Participant</span>
                         {!selectedParticipantId && <span className="ml-auto text-xs text-white">✓</span>}
                       </button>
-                      {derivedParticipants.map((p) => (
+                      {[...derivedParticipants].sort((a, b) => a.name.localeCompare(b.name)).map((p) => (
                         <button
                           key={p.id || p.name}
                           type="button"
@@ -544,17 +545,6 @@ export default function App() {
         </div>
       </div>
 
-      {isAdmin && (
-        <div id="admin-panel" className="mb-6">
-          <AdminPanel
-            participants={derivedParticipants}
-            onResetPin={handleAdminResetPin}
-            onAddParticipant={handleAdminAddParticipant}
-            onUpdateParticipant={handleAdminUpdateParticipant}
-          />
-        </div>
-      )}
-
       <div id="profile-panel" className="mb-6 rounded-2xl border bg-white p-4 shadow-soft">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
@@ -586,6 +576,37 @@ export default function App() {
           loading={loadingParticipants}
           showPinBubble={showPinReminder}
         />
+      )}
+
+      {isAdmin && (
+        <div id="admin-panel" className="mb-6 rounded-2xl border-2 border-red-400 bg-white p-4 shadow-soft">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 className="section-title">Admin Panel</h2>
+              <p className="section-subtitle">Manage participants, avatars, and PINs.</p>
+            </div>
+            <Button
+              variant="outline"
+              className="border-red-300 text-red-700 hover:bg-red-50 hover:text-red-800"
+              onClick={() => setShowAdmin((current) => !current)}
+              aria-expanded={showAdmin}
+            >
+              {showAdmin ? <ChevronUp className="mr-2 h-4 w-4" /> : <ChevronDown className="mr-2 h-4 w-4" />}
+              {showAdmin ? 'Collapse' : 'Open Admin Panel'}
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {isAdmin && showAdmin && (
+        <div className="mb-6">
+          <AdminPanel
+            participants={derivedParticipants}
+            onResetPin={handleAdminResetPin}
+            onAddParticipant={handleAdminAddParticipant}
+            onUpdateParticipant={handleAdminUpdateParticipant}
+          />
+        </div>
       )}
     </div>
   );

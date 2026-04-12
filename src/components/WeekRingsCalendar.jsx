@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Lock } from 'lucide-react';
 import {
   calculateActiveMinutesImprovementBonus,
   calculateConsistencyBonus,
@@ -9,6 +10,9 @@ import {
 } from '@/lib/points';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { getParticipantKey, getParticipantProfileImage, matchesParticipant } from '@/lib/participants';
+import { CHALLENGE_CONFIG } from '@/lib/config';
+
+const challengeActive = new Date() >= new Date(CHALLENGE_CONFIG.challengeStartDate + 'T00:00:00');
 
 // Apple Watch ring colors
 const RING_MOVE     = '#FA3E57'; // red   — daily points (main ring)
@@ -130,6 +134,17 @@ export default function WeekRingsCalendar({
         )}
       </CardHeader>
       <CardContent>
+        {!challengeActive && (
+          <div className="mb-4 flex flex-col items-center gap-3 rounded-2xl border bg-slate-50 py-8 text-center">
+            <Lock className="h-8 w-8 text-slate-300" />
+            <div className="text-base font-semibold text-slate-600">Challenge not active yet</div>
+            <div className="text-sm text-muted-foreground">
+              Weekly rings unlock on <span className="font-semibold text-slate-700">{CHALLENGE_CONFIG.challengeStartDate}</span>
+            </div>
+          </div>
+        )}
+        {challengeActive && (
+        <>
         {/* Week tabs */}
         <div className="mb-4 flex flex-wrap gap-1">
           {weeks.map((w, i) => (
@@ -238,6 +253,8 @@ export default function WeekRingsCalendar({
             </tbody>
           </table>
         </div>
+        </>
+        )}
       </CardContent>
     </Card>
   );
