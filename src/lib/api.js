@@ -241,6 +241,32 @@ export async function updateParticipant(payload) {
   return postJson({ action: 'updateParticipant', ...payload });
 }
 
+export async function verifyParticipantPin(participantId, pin) {
+  if (!APP_SCRIPT_URL) {
+    // Mock mode: auto-authenticate if participant has no pin set
+    const participants = loadMockParticipants();
+    const participant = participants.find((p) => p.id === participantId);
+    if (!participant) return { ok: false, error: 'not_found' };
+    const storedPin = String(participant.pin || '').trim();
+    if (!storedPin) return { ok: true, source: 'mock' };
+    if (storedPin === String(pin).trim()) return { ok: true, source: 'mock' };
+    return { ok: false, error: 'invalid_pin', source: 'mock' };
+  }
+  return postJson({ action: 'verifyParticipantPin', participantId, pin });
+}
+
+export async function changeParticipantPin(participantId, newPin) {
+  if (!APP_SCRIPT_URL) {
+    const participants = loadMockParticipants();
+    const participant = participants.find((p) => p.id === participantId);
+    if (!participant) return { ok: false, error: 'not_found' };
+    const updated = { ...participant, pin: newPin };
+    setStoredJson(MOCK_PARTICIPANTS_KEY, participants.map((p) => (p.id === participantId ? updated : p)));
+    return { ok: true, source: 'mock' };
+  }
+  return postJson({ action: 'changeParticipantPin', participantId, newPin });
+}
+
 export async function logDailyEntry(payload) {
   if (!APP_SCRIPT_URL) {
     const nextEntry = withComputedDailyPoints(payload);

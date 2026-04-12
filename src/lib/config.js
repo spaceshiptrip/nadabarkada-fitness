@@ -3,7 +3,7 @@
 
 // Google Apps Script "web app" URL that writes to your Google Sheet.
 // Set to null or '' to run in mock/offline mode (uses localStorage).
-export const APP_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw21r9qqPHrekgAXG4OXIiJFsrnI6F_4Hml94fbKzYV40hV8MARWWRNMVDRoCYb9Pao1A/exec';
+export const APP_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwsT6zxzCv-hLuNBiDlmNs6Ke8ed_i-IvRpkxkVR4dYQBHdUWzSmcjJWsYPN4wh1_-jNg/exec';
 
 // Challenge dates
 export const CHALLENGE_CONFIG = {

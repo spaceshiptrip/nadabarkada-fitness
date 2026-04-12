@@ -1,7 +1,9 @@
 const SPREADSHEET_ID = '1wqTMjXCBFA8PZg2L5Tg0WLZPAxO_TEantDIeNenRdZ4';
+const PIN_SALT_PROPERTY_KEY = 'FITNESS_PIN_SALT_V1';
+const DEFAULT_PIN = '1234';
 const PARTICIPANTS_SHEET = 'Participants';
 const DAILY_LOGS_SHEET = 'DailyLogs';
-const PARTICIPANT_HEADERS = ['UserId', 'Name', 'DeviceType', 'TeamName', 'BaselineActiveMinutes', 'BaselineSteps', 'Active', 'CreatedAt', 'ProfileImage', 'BaselineOverride', 'PhoneNumber', 'Pin'];
+const PARTICIPANT_HEADERS = ['UserId', 'Name', 'DeviceType', 'TeamName', 'BaselineActiveMinutes', 'BaselineSteps', 'Active', 'CreatedAt', 'ProfileImage', 'BaselineOverride', 'PhoneNumber', 'Pin', 'Role'];
 const DAILY_LOG_HEADERS = ['Date', 'ParticipantId', 'Name', 'ActiveMinutes', 'WorkoutDone', 'Steps', 'MobilityDone', 'Notes', 'DailyPoints', 'ChallengeWeek', 'CreatedAt'];
 
 const BASELINE_START = new Date('2026-04-27T00:00:00');
@@ -47,6 +49,16 @@ function doPost(e) {
       return json_({ ok: true, data: saved, source: 'live' });
     }
 
+    if (action === 'verifyParticipantPin') {
+      const result = verifyParticipantPin_(payload);
+      return json_(result);
+    }
+
+    if (action === 'changeParticipantPin') {
+      const result = changeParticipantPin_(payload);
+      return json_(result);
+    }
+
     return json_({ ok: false, error: 'Unknown action' });
   } catch (error) {
     return json_({ ok: false, error: String(error) });
@@ -78,7 +90,8 @@ function addParticipant_(payload) {
     payload.profileImage || '',
     toBool_(payload.baselineOverride),
     payload.phoneNumber || '',
-    payload.pin || '',
+    payload.pin ? sha256Hex_(getPinSalt_() + ':' + String(payload.pin).trim()) : '',
+    payload.role || 'participant',
   ];
 
   sheet.appendRow(row);
@@ -117,16 +130,16 @@ function addDailyLog_(payload) {
   const challengeWeek = getChallengeWeek_(entry.date);
 
   const row = [
-    entry.date,
-    entry.participantId,
-    entry.name,
-    entry.activeMinutes,
-    entry.workoutDone,
-    entry.steps,
-    entry.mobilityDone,
-    entry.notes,
-    dailyPoints,
-    challengeWeek,
+    String(entry.date),
+    String(entry.participantId),
+    String(entry.name),
+    number_(entry.activeMinutes),
+    toBool_(entry.workoutDone),
+    number_(entry.steps),
+    toBool_(entry.mobilityDone),
+    String(entry.notes || ''),
+    number_(dailyPoints),
+    number_(challengeWeek),
     new Date(),
   ];
 
@@ -161,6 +174,7 @@ function getParticipants_() {
       baselineOverride: participant.baselineOverride,
       phoneNumber: participant.phoneNumber || '',
       active: participant.active,
+      role: participant.role || 'participant',
     };
     });
 }
@@ -432,6 +446,7 @@ function getParticipantsRaw_() {
         baselineOverride: toBool_(row.BaselineOverride),
         phoneNumber: row.PhoneNumber || '',
         pin: row.Pin || '',
+        role: String(row.Role || '').trim().toLowerCase() || 'participant',
         active: normalizeActiveFlag_(row.Active),
       };
     });
@@ -562,6 +577,113 @@ function average_(values) {
   return sum_(values) / values.length;
 }
 
+/** -------- Participant PIN auth -------- */
+
+function verifyParticipantPin_(payload) {
+  var participantId = String(payload.participantId || '').trim();
+  var pin = String(payload.pin || '').trim();
+
+  if (!participantId || !pin) return { ok: false, error: 'bad_request' };
+
+  var participants = getParticipantsRaw_();
+  var participant = participants.find(function(p) { return String(p.id || '').trim() === participantId; });
+  if (!participant) return { ok: false, error: 'not_found' };
+
+  var storedHash = String(participant.pin || '').trim();
+
+  // No PIN set on this participant — treat as open access
+  if (!storedHash) return { ok: true, source: 'live' };
+
+  if (!verifyPin_(pin, storedHash)) return { ok: false, error: 'invalid_pin' };
+
+  return { ok: true, source: 'live' };
+}
+
+function verifyPin_(pin, storedHash) {
+  if (!storedHash) return false;
+  var salt = getPinSalt_();
+  var computed = sha256Hex_(salt + ':' + String(pin).trim());
+  return computed === String(storedHash).trim();
+}
+
+function sha256Hex_(s) {
+  var bytes = Utilities.computeDigest(
+    Utilities.DigestAlgorithm.SHA_256,
+    s,
+    Utilities.Charset.UTF_8
+  );
+  return bytes.map(function(b) {
+    var hex = (b < 0 ? b + 256 : b).toString(16);
+    return hex.length === 1 ? '0' + hex : hex;
+  }).join('');
+}
+
+function getPinSalt_() {
+  var props = PropertiesService.getScriptProperties();
+  var salt = props.getProperty(PIN_SALT_PROPERTY_KEY);
+  if (!salt) throw new Error('PIN salt not set. Run setPinSalt_() once from the Apps Script editor.');
+  return salt;
+}
+
+/**
+ * One-time setup: run this once from the Apps Script editor (Run → setPinSalt_).
+ * Creates a secret salt stored in script properties. Never run again after PINs are set.
+ */
+function setPinSalt_() {
+  var props = PropertiesService.getScriptProperties();
+  if (props.getProperty(PIN_SALT_PROPERTY_KEY)) {
+    Logger.log('Salt already set — skipping.');
+    return;
+  }
+  var salt = Utilities.getUuid() + Utilities.getUuid();
+  props.setProperty(PIN_SALT_PROPERTY_KEY, salt);
+  Logger.log('Salt created.');
+}
+
+/**
+ * Helper: run from the editor to get the hash for a PIN to paste into the sheet.
+ * Change participantPin to the PIN you want, then copy the logged hash into
+ * the participant's Pin column in the Participants sheet.
+ *
+ * Example usage:
+ *   1. Set participantPin below to the desired PIN (e.g. '1234')
+ *   2. Run generateParticipantPinHash from the editor
+ *   3. Copy the logged hash into the Pin column for that participant row
+ */
+function generateParticipantPinHash(pin) {
+  var participantPin = (pin !== undefined && String(pin).trim()) ? String(pin).trim() : DEFAULT_PIN;
+  var salt = getPinSalt_();
+  var hash = sha256Hex_(salt + ':' + participantPin);
+  Logger.log('PIN hash for PIN "' + participantPin + '": ' + hash);
+  return hash;
+}
+
+function changeParticipantPin_(payload) {
+  var participantId = String(payload.participantId || '').trim();
+  var newPin = String(payload.newPin || '').trim();
+  if (!participantId || !newPin) return { ok: false, error: 'bad_request' };
+
+  var salt = getPinSalt_();
+  var newHash = sha256Hex_(salt + ':' + newPin);
+
+  var sheet = getSheet_(PARTICIPANTS_SHEET);
+  var values = sheet.getDataRange().getValues();
+  if (!values || values.length < 2) return { ok: false, error: 'not_found' };
+
+  var headers = values[0];
+  var userIdIndex = headers.indexOf('UserId');
+  var pinIndex = headers.indexOf('Pin');
+
+  for (var i = 1; i < values.length; i++) {
+    if (String(values[i][userIdIndex] || '').trim() === participantId) {
+      sheet.getRange(i + 1, pinIndex + 1).setValue(newHash);
+      return { ok: true, source: 'live' };
+    }
+  }
+
+  return { ok: false, error: 'not_found' };
+}
+
 function formatDate_(value) {
   if (!value) return '';
   if (value instanceof Date) {
@@ -593,6 +715,8 @@ function updateParticipant_(payload) {
         BaselineOverride: headers.indexOf('BaselineOverride'),
         BaselineActiveMinutes: headers.indexOf('BaselineActiveMinutes'),
         BaselineSteps: headers.indexOf('BaselineSteps'),
+        Role: headers.indexOf('Role'),
+        Active: headers.indexOf('Active'),
       };
 
       if (payload.name !== undefined) row[fieldMap.Name] = payload.name;
@@ -602,6 +726,8 @@ function updateParticipant_(payload) {
       if (payload.baselineOverride !== undefined) row[fieldMap.BaselineOverride] = toBool_(payload.baselineOverride);
       if (payload.baselineActiveMinutes !== undefined) row[fieldMap.BaselineActiveMinutes] = number_(payload.baselineActiveMinutes);
       if (payload.baselineSteps !== undefined) row[fieldMap.BaselineSteps] = number_(payload.baselineSteps);
+      if (payload.role !== undefined && fieldMap.Role >= 0) row[fieldMap.Role] = String(payload.role || 'participant').trim().toLowerCase();
+      if (payload.active !== undefined && fieldMap.Active >= 0) row[fieldMap.Active] = normalizeActiveFlag_(payload.active);
 
       sheet.getRange(i + 1, 1, 1, row.length).setValues([row]);
 
@@ -611,6 +737,8 @@ function updateParticipant_(payload) {
         deviceType: row[fieldMap.DeviceType],
         teamName: row[fieldMap.TeamName],
         profileImage: row[fieldMap.ProfileImage] || '',
+        role: row[fieldMap.Role] || 'participant',
+        active: row[fieldMap.Active],
       };
     }
   }

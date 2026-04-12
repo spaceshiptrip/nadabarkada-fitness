@@ -108,7 +108,7 @@ function DayRings({ log, size = 34 }) {
   );
 }
 
-export default function MyRingsPanel({ participants, logs, selectedParticipantId }) {
+export default function MyRingsPanel({ participants, logs, selectedParticipantId, isAuthenticated }) {
   const [view, setView] = useState('day');
   const [showLegend, setShowLegend] = useState(false);
 
@@ -150,7 +150,16 @@ export default function MyRingsPanel({ participants, logs, selectedParticipantId
           </div>
         </CardContent>
       )}
-      <CardContent className={`flex min-h-[420px] flex-col gap-5 ${!selectedParticipant ? 'hidden' : ''}`}>
+      {selectedParticipant && !isAuthenticated && (
+        <CardContent>
+          <div className="grid gap-4 rounded-2xl border bg-slate-50 p-6 text-center">
+            <p className="text-sm text-slate-600">
+              Enter your PIN in the Daily Log Entry card to unlock your rings.
+            </p>
+          </div>
+        </CardContent>
+      )}
+      <CardContent className={`flex min-h-[420px] flex-col gap-5 ${!selectedParticipant || !isAuthenticated ? 'hidden' : ''}`}>
         {summary.isPreCompetition && (
           <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
             <div className="font-semibold">Pre-competition updates</div>
@@ -473,13 +482,8 @@ function buildSummary(participant, logs, view) {
   const currentYear = today.getFullYear();
 
   if (view === 'day') {
-    const log =
-      getLogForDate(participantLogs, todayIso) ||
-      [...participantLogs].sort((a, b) =>
-        String(b.date || '').localeCompare(String(a.date || ''))
-      )[0] ||
-      null;
-    const displayDate = log?.date?.slice(0, 10) || todayIso;
+    const log = getLogForDate(participantLogs, todayIso);
+    const displayDate = todayIso;
     const points = log ? Number(log.dailyPoints ?? calculateDailyPoints(log)) : 0;
     return {
       isPreCompetition,
@@ -505,7 +509,7 @@ function buildSummary(participant, logs, view) {
       const calendarWeek = getCalendarWeekRange(todayIso);
       const days = Array.from({ length: 7 }, (_, index) => {
         const date = addDays(calendarWeek.start, index);
-        const log = participantLogs.find((entry) => entry.date === date) || null;
+        const log = participantLogs.find((entry) => String(entry.date || '').slice(0, 10) === date) || null;
         return {
           date,
           shortDate: shortDate(date),
@@ -553,7 +557,7 @@ function buildSummary(participant, logs, view) {
     const days = currentWeekRange
       ? Array.from({ length: 7 }, (_, index) => {
           const date = addDays(currentWeekRange.start, index);
-          const log = participantLogs.find((entry) => entry.date === date) || null;
+          const log = participantLogs.find((entry) => String(entry.date || '').slice(0, 10) === date) || null;
           return {
             date,
             shortDate: shortDate(date),
@@ -814,7 +818,7 @@ function buildMonthCalendarWeeks(participantLogs, allLogs, participant, year, mo
       const date = toLocalIsoDate(cursor);
       const inMonth = cursor.getMonth() === month;
       if (inMonth) {
-        const log = participantLogs.find((entry) => entry.date === date) || null;
+        const log = participantLogs.find((entry) => String(entry.date || '').slice(0, 10) === date) || null;
         days.push({
           key: date,
           date,
