@@ -218,7 +218,6 @@ export default function DailyLogForm({ participant, participantLogs, onSubmit, o
                   <MessageSquare className="h-4 w-4" />
                   Text Jay to join
                 </a>
-                <p className="text-xs text-muted-foreground">(818) 653-9874</p>
               </div>
             </div>
           </div>
