@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ChevronDown, ChevronUp, KeyRound, LogOut, Menu, X } from 'lucide-react';
+import { ChevronDown, ChevronUp, KeyRound, Loader2, LogOut, Menu, X } from 'lucide-react';
 import Header from '@/components/Header';
 import RulesCard from '@/components/RulesCard';
 import ProfilePanel from '@/components/ProfilePanel';
@@ -31,8 +31,11 @@ export default function App() {
   const [participantsSource, setParticipantsSource] = useState('loading');
   const [leaderboardSource, setLeaderboardSource] = useState('loading');
   const [summarySource, setSummarySource] = useState('loading');
+  const [isFetching, setIsFetching] = useState(false);
+  const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [loadingParticipants, setLoadingParticipants] = useState(false);
   const [submittingLog, setSubmittingLog] = useState(false);
+  const serverBusy = isFetching || isAuthenticating || loadingParticipants || submittingLog;
   const [message, setMessage] = useState('');
   const [showRules, setShowRules] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
@@ -54,6 +57,7 @@ export default function App() {
   });
 
   async function loadAll() {
+    setIsFetching(true);
     try {
       const [participantsRes, leaderboardRes, summaryRes, logsRes] = await Promise.all([
         getParticipants(),
@@ -71,6 +75,8 @@ export default function App() {
       setSummarySource(summaryRes.source || 'live');
     } catch (error) {
       setMessage(error.message || 'Failed to load data.');
+    } finally {
+      setIsFetching(false);
     }
   }
 
@@ -153,7 +159,8 @@ export default function App() {
   }
 
   async function handleAuthenticate(participantId, pin, stayLoggedIn = false) {
-    const result = await verifyParticipantPin(participantId, pin);
+    setIsAuthenticating(true);
+    const result = await verifyParticipantPin(participantId, pin).finally(() => setIsAuthenticating(false));
     if (result.ok) {
       setAuthenticatedParticipantId(participantId);
       if (stayLoggedIn) {
@@ -168,6 +175,7 @@ export default function App() {
   }
 
   function handleLogout() {
+    setSelectedParticipantId('');
     setAuthenticatedParticipantId('');
     setShowPinReminder(false);
     window.localStorage.removeItem(STAY_LOGGED_IN_KEY);
@@ -176,6 +184,7 @@ export default function App() {
   function handlePinChanged(participantId) {
     window.localStorage.setItem(`fitness-challenge:pin-changed:${participantId}`, '1');
     setShowPinReminder(false);
+    loadAll();
   }
 
   async function handleAdminUpdateParticipant(payload) {
@@ -199,6 +208,28 @@ export default function App() {
 
   const isAuthenticated = !!selectedParticipantId && selectedParticipantId === authenticatedParticipantId;
   const isAdmin = isAuthenticated && selectedParticipant?.role === 'admin';
+
+  // On mobile: when a participant is selected but not yet authenticated, scroll to the daily log
+  useEffect(() => {
+    if (selectedParticipantId && !isAuthenticated) {
+      if (window.innerWidth < 768) {
+        setTimeout(() => {
+          document.getElementById('daily-log-entry')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 200);
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedParticipantId]);
+
+  // When PIN reminder fires, auto-open profile and scroll to it
+  useEffect(() => {
+    if (showPinReminder) {
+      setShowProfile(true);
+      setTimeout(() => {
+        document.getElementById('profile-panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 300);
+    }
+  }, [showPinReminder]);
 
   function scrollToSection(sectionId) {
     const element = document.getElementById(sectionId);
@@ -225,10 +256,21 @@ export default function App() {
           </Button>
 
           <div className="min-w-0 flex-1 text-center">
-            <div className="text-sm font-semibold text-white">NadaBarkada Fitness Challenge</div>
+            <div className="flex items-center justify-center gap-2 text-sm font-semibold text-white">
+              NadaBarkada Fitness Challenge
+              {serverBusy && <Loader2 className="h-4 w-4 animate-spin text-blue-200" />}
+            </div>
           </div>
 
           <div className="relative flex min-w-0 items-center">
+            {!selectedParticipantId && !showParticipantMenu && (
+              <div className="pointer-events-none absolute -bottom-12 right-0 z-30 animate-bounce">
+                <div className="relative rounded-2xl bg-white px-3 py-1.5 text-xs font-semibold text-slate-800 shadow-lg">
+                  Select participant
+                  <div className="absolute -top-2 right-4 h-0 w-0 border-x-8 border-b-8 border-x-transparent border-b-white" />
+                </div>
+              </div>
+            )}
             <button
               type="button"
               onClick={() => setShowParticipantMenu((v) => !v)}
@@ -542,6 +584,7 @@ export default function App() {
           onUpdateProfile={handleUpdateParticipant}
           onPinChanged={handlePinChanged}
           loading={loadingParticipants}
+          showPinBubble={showPinReminder}
         />
       )}
     </div>
