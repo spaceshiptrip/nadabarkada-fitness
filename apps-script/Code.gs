@@ -715,6 +715,8 @@ function updateParticipant_(payload) {
         BaselineOverride: headers.indexOf('BaselineOverride'),
         BaselineActiveMinutes: headers.indexOf('BaselineActiveMinutes'),
         BaselineSteps: headers.indexOf('BaselineSteps'),
+        Role: headers.indexOf('Role'),
+        Active: headers.indexOf('Active'),
       };
 
       if (payload.name !== undefined) row[fieldMap.Name] = payload.name;
@@ -724,6 +726,8 @@ function updateParticipant_(payload) {
       if (payload.baselineOverride !== undefined) row[fieldMap.BaselineOverride] = toBool_(payload.baselineOverride);
       if (payload.baselineActiveMinutes !== undefined) row[fieldMap.BaselineActiveMinutes] = number_(payload.baselineActiveMinutes);
       if (payload.baselineSteps !== undefined) row[fieldMap.BaselineSteps] = number_(payload.baselineSteps);
+      if (payload.role !== undefined && fieldMap.Role >= 0) row[fieldMap.Role] = String(payload.role || 'participant').trim().toLowerCase();
+      if (payload.active !== undefined && fieldMap.Active >= 0) row[fieldMap.Active] = normalizeActiveFlag_(payload.active);
 
       sheet.getRange(i + 1, 1, 1, row.length).setValues([row]);
 
@@ -733,6 +737,8 @@ function updateParticipant_(payload) {
         deviceType: row[fieldMap.DeviceType],
         teamName: row[fieldMap.TeamName],
         profileImage: row[fieldMap.ProfileImage] || '',
+        role: row[fieldMap.Role] || 'participant',
+        active: row[fieldMap.Active],
       };
     }
   }

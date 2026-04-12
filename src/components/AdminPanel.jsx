@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { KeyRound, ShieldCheck, UserPlus } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -37,11 +37,15 @@ async function resizeProfileImage(file) {
   });
 }
 
-const BLANK_ADD_FORM = { name: '', deviceType: 'Garmin', profileImage: '', isAdmin: false };
+const DEVICE_OPTIONS = ['Garmin', 'Apple Watch', 'Android / Wear OS', 'Manual entry'];
+const BLANK_ADD_FORM = { name: '', deviceType: 'Manual entry', teamName: '', profileImage: '', isAdmin: false };
 
-export default function AdminPanel({ participants, onResetPin, onAddParticipant }) {
+export default function AdminPanel({ participants, onResetPin, onAddParticipant, onUpdateParticipant }) {
   // Roster / detail state
   const [selected, setSelected] = useState(null);
+  const [editForm, setEditForm] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [saveMessage, setSaveMessage] = useState('');
   const [resetting, setResetting] = useState(false);
   const [resetMessage, setResetMessage] = useState('');
 
@@ -53,9 +57,52 @@ export default function AdminPanel({ participants, onResetPin, onAddParticipant 
   const [adding, setAdding] = useState(false);
   const addFileRef = useRef(null);
 
-  const handleSelect = (p) => {
-    setSelected(p);
-    setResetMessage('');
+  // Sync edit form when selection changes
+  useEffect(() => {
+    if (selected) {
+      setEditForm({
+        name: selected.name || '',
+        deviceType: selected.deviceType || 'Manual entry',
+        teamName: selected.teamName || '',
+        role: selected.role || 'participant',
+        active: selected.active !== 0 && selected.active !== false,
+      });
+      setSaveMessage('');
+      setResetMessage('');
+    } else {
+      setEditForm(null);
+    }
+  }, [selected]);
+
+  // Keep selected in sync after roster refreshes
+  useEffect(() => {
+    if (selected) {
+      const refreshed = participants.find((p) => p.id === selected.id);
+      if (refreshed) setSelected(refreshed);
+    }
+  }, [participants]);
+
+  const handleSave = async (e) => {
+    e.preventDefault();
+    if (!selected || !editForm) return;
+    setSaving(true);
+    setSaveMessage('');
+    try {
+      const result = await onUpdateParticipant({
+        id: selected.id,
+        name: editForm.name.trim() || selected.name,
+        deviceType: editForm.deviceType,
+        teamName: editForm.teamName.trim(),
+        role: editForm.role,
+        active: editForm.active ? 1 : 0,
+      });
+      setSaveMessage(result?.ok ? 'Saved!' : `Failed: ${result?.error || 'unknown error'}`);
+      setTimeout(() => setSaveMessage(''), 3000);
+    } catch {
+      setSaveMessage('Error saving. Please try again.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleReset = async () => {
@@ -96,6 +143,7 @@ export default function AdminPanel({ participants, onResetPin, onAddParticipant 
       const result = await onAddParticipant({
         name: addForm.name.trim(),
         deviceType: addForm.deviceType,
+        teamName: addForm.teamName.trim(),
         profileImage: addForm.profileImage,
         role: addForm.isAdmin ? 'admin' : 'participant',
         pin: '0000',
@@ -123,8 +171,10 @@ export default function AdminPanel({ participants, onResetPin, onAddParticipant 
       </CardHeader>
       <CardContent className="grid gap-6">
 
-        {/* Roster + detail */}
+        {/* Roster + edit detail */}
         <div className="grid gap-6 xl:grid-cols-2">
+
+          {/* Roster */}
           <div className="rounded-2xl border bg-slate-50 p-4">
             <div className="mb-3 text-sm font-semibold text-slate-800">Roster</div>
             <div className="space-y-2">
@@ -135,7 +185,7 @@ export default function AdminPanel({ participants, onResetPin, onAddParticipant 
                 <button
                   key={p.id || p.name}
                   type="button"
-                  onClick={() => handleSelect(p)}
+                  onClick={() => setSelected(p)}
                   className={`flex w-full items-center gap-3 rounded-xl border p-3 text-left transition-colors hover:bg-white ${
                     selected?.id === p.id ? 'border-primary/30 bg-white shadow-sm' : 'bg-white/60'
                   }`}
@@ -156,41 +206,109 @@ export default function AdminPanel({ participants, onResetPin, onAddParticipant 
                       Admin
                     </span>
                   )}
+                  {p.active === 0 || p.active === false ? (
+                    <span className="flex-shrink-0 rounded-full bg-slate-200 px-2 py-0.5 text-xs text-slate-500">
+                      Inactive
+                    </span>
+                  ) : null}
                   {selected?.id === p.id && <span className="flex-shrink-0 text-xs text-primary">✓</span>}
                 </button>
               ))}
             </div>
           </div>
 
+          {/* Edit detail */}
           <div className="rounded-2xl border bg-white p-4">
-            {selected ? (
+            {selected && editForm ? (
               <div className="grid gap-4">
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-3">
                   <img
                     src={getParticipantProfileImage(selected.profileImage)}
                     alt={selected.name}
-                    className="h-16 w-16 flex-shrink-0 rounded-full border object-cover"
+                    className="h-12 w-12 flex-shrink-0 rounded-full border object-cover"
                   />
                   <div className="min-w-0">
-                    <div className="text-base font-semibold text-slate-800">{selected.name}</div>
-                    <div className="mt-0.5 text-xs text-muted-foreground">{selected.id}</div>
+                    <div className="truncate text-sm font-semibold text-slate-800">{selected.name}</div>
+                    <div className="truncate text-xs text-muted-foreground">{selected.id}</div>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2 rounded-xl border bg-slate-50 p-3 text-sm">
-                  <div><span className="font-medium">Role:</span> {selected.role || 'participant'}</div>
-                  <div><span className="font-medium">Active:</span> {selected.active ? 'Yes' : 'No'}</div>
-                  <div><span className="font-medium">Device:</span> {selected.deviceType || '—'}</div>
-                  <div><span className="font-medium">Team:</span> {selected.teamName || '—'}</div>
-                </div>
+                <form onSubmit={handleSave} className="grid gap-3">
+                  <div className="grid gap-1.5">
+                    <Label htmlFor="edit-name">Name</Label>
+                    <Input
+                      id="edit-name"
+                      value={editForm.name}
+                      onChange={(e) => setEditForm((prev) => ({ ...prev, name: e.target.value }))}
+                    />
+                  </div>
 
-                <div className="grid gap-2">
-                  <div className="text-sm font-semibold text-slate-700">Reset PIN</div>
-                  <div className="text-xs text-muted-foreground">
-                    Resets <strong>{selected.name}</strong>'s PIN to <strong>0000</strong>. They'll be prompted to change it on next login.
+                  <div className="grid gap-1.5">
+                    <Label htmlFor="edit-device">Device type</Label>
+                    <select
+                      id="edit-device"
+                      className="h-10 w-full rounded-xl border bg-white px-3 text-sm"
+                      value={editForm.deviceType}
+                      onChange={(e) => setEditForm((prev) => ({ ...prev, deviceType: e.target.value }))}
+                    >
+                      {DEVICE_OPTIONS.map((o) => <option key={o}>{o}</option>)}
+                    </select>
+                  </div>
+
+                  <div className="grid gap-1.5">
+                    <Label htmlFor="edit-team">Team</Label>
+                    <Input
+                      id="edit-team"
+                      value={editForm.teamName}
+                      onChange={(e) => setEditForm((prev) => ({ ...prev, teamName: e.target.value }))}
+                      placeholder="Team name"
+                    />
+                  </div>
+
+                  <div className="grid gap-1.5">
+                    <Label htmlFor="edit-role">Role</Label>
+                    <select
+                      id="edit-role"
+                      className="h-10 w-full rounded-xl border bg-white px-3 text-sm"
+                      value={editForm.role}
+                      onChange={(e) => setEditForm((prev) => ({ ...prev, role: e.target.value }))}
+                    >
+                      <option value="participant">Participant</option>
+                      <option value="admin">Admin</option>
+                    </select>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <input
+                      id="edit-active"
+                      type="checkbox"
+                      className="h-4 w-4 rounded border"
+                      checked={editForm.active}
+                      onChange={(e) => setEditForm((prev) => ({ ...prev, active: e.target.checked }))}
+                    />
+                    <Label htmlFor="edit-active" className="cursor-pointer font-normal">Active</Label>
+                  </div>
+
+                  {saveMessage && (
+                    <div className={`rounded-xl p-2 text-xs ${
+                      saveMessage === 'Saved!' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'
+                    }`}>
+                      {saveMessage}
+                    </div>
+                  )}
+
+                  <Button type="submit" size="sm" disabled={saving}>
+                    {saving ? 'Saving...' : 'Save changes'}
+                  </Button>
+                </form>
+
+                <div className="border-t pt-3">
+                  <div className="mb-1.5 text-sm font-semibold text-slate-700">Reset PIN</div>
+                  <div className="mb-2 text-xs text-muted-foreground">
+                    Resets to <strong>0000</strong>. Participant will be prompted to change it on next login.
                   </div>
                   {resetMessage && (
-                    <div className={`rounded-xl p-2 text-xs ${
+                    <div className={`mb-2 rounded-xl p-2 text-xs ${
                       resetMessage.startsWith('Failed') || resetMessage.startsWith('Error')
                         ? 'bg-red-50 text-red-700'
                         : 'bg-green-50 text-green-700'
@@ -206,7 +324,7 @@ export default function AdminPanel({ participants, onResetPin, onAddParticipant 
               </div>
             ) : (
               <div className="flex min-h-[200px] items-center justify-center text-sm text-muted-foreground">
-                Select a participant to manage them.
+                Select a participant from the roster to manage them.
               </div>
             )}
           </div>
@@ -220,7 +338,7 @@ export default function AdminPanel({ participants, onResetPin, onAddParticipant 
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
-            <div className="grid gap-2">
+            <div className="grid gap-1.5">
               <Label htmlFor="add-name">Name <span className="text-red-500">*</span></Label>
               <Input
                 id="add-name"
@@ -230,7 +348,17 @@ export default function AdminPanel({ participants, onResetPin, onAddParticipant 
               />
             </div>
 
-            <div className="grid gap-2">
+            <div className="grid gap-1.5">
+              <Label htmlFor="add-team">Team</Label>
+              <Input
+                id="add-team"
+                value={addForm.teamName}
+                onChange={(e) => setAddForm((prev) => ({ ...prev, teamName: e.target.value }))}
+                placeholder="Team name"
+              />
+            </div>
+
+            <div className="grid gap-1.5">
               <Label htmlFor="add-device">Device type</Label>
               <select
                 id="add-device"
@@ -238,15 +366,12 @@ export default function AdminPanel({ participants, onResetPin, onAddParticipant 
                 value={addForm.deviceType}
                 onChange={(e) => setAddForm((prev) => ({ ...prev, deviceType: e.target.value }))}
               >
-                <option>Garmin</option>
-                <option>Apple Watch</option>
-                <option>Android / Wear OS</option>
-                <option>Manual entry</option>
+                {DEVICE_OPTIONS.map((o) => <option key={o}>{o}</option>)}
               </select>
             </div>
           </div>
 
-          <div className="grid gap-2">
+          <div className="grid gap-1.5">
             <Label htmlFor="add-photo">Profile picture (optional)</Label>
             <div className="flex items-center gap-3 rounded-2xl border bg-white p-3">
               <img
@@ -270,8 +395,8 @@ export default function AdminPanel({ participants, onResetPin, onAddParticipant 
                   type="button"
                   variant="outline"
                   size="sm"
-                  onClick={() => { setAddForm((prev) => ({ ...prev, profileImage: '' })); if (addFileRef.current) addFileRef.current.value = ''; }}
                   className="flex-shrink-0"
+                  onClick={() => { setAddForm((prev) => ({ ...prev, profileImage: '' })); if (addFileRef.current) addFileRef.current.value = ''; }}
                 >
                   Clear
                 </Button>
@@ -287,13 +412,11 @@ export default function AdminPanel({ participants, onResetPin, onAddParticipant 
               checked={addForm.isAdmin}
               onChange={(e) => setAddForm((prev) => ({ ...prev, isAdmin: e.target.checked }))}
             />
-            <Label htmlFor="add-is-admin" className="cursor-pointer font-normal">
-              Admin role
-            </Label>
+            <Label htmlFor="add-is-admin" className="cursor-pointer font-normal">Admin role</Label>
           </div>
 
           <div className="text-xs text-muted-foreground">
-            Default PIN is <strong>0000</strong>. The participant will be reminded to change it on first login.
+            Default PIN is <strong>0000</strong>. Participant will be reminded to change it on first login.
           </div>
 
           {addError && <div className="text-xs text-red-600">{addError}</div>}

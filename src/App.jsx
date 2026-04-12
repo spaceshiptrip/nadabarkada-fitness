@@ -155,6 +155,12 @@ export default function App() {
     setShowPinReminder(false);
   }
 
+  async function handleAdminUpdateParticipant(payload) {
+    const result = await updateParticipant(payload);
+    if (result.ok) await loadAll();
+    return result;
+  }
+
   async function handleAdminAddParticipant(payload) {
     const result = await addParticipant(payload);
     if (result.ok) await loadAll();
@@ -446,6 +452,7 @@ export default function App() {
             participants={derivedParticipants}
             onResetPin={handleAdminResetPin}
             onAddParticipant={handleAdminAddParticipant}
+            onUpdateParticipant={handleAdminUpdateParticipant}
           />
         </div>
       )}
