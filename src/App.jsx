@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ChevronDown, ChevronUp, KeyRound, Loader2, LogOut, Menu, X } from 'lucide-react';
 import Header from '@/components/Header';
+import Footer from '@/components/Footer';
 import RulesCard from '@/components/RulesCard';
 import ProfilePanel from '@/components/ProfilePanel';
 import AdminPanel from '@/components/AdminPanel';
@@ -241,7 +242,7 @@ export default function App() {
   }
 
   return (
-    <div className="app-shell">
+    <div className="app-shell min-h-screen flex flex-col">
       <div className="fixed inset-x-0 top-0 z-50 px-4 pt-3 md:px-6">
         <div className="mx-auto max-w-7xl rounded-2xl border border-white/20 bg-gradient-to-r from-blue-600/95 to-indigo-700/95 p-3 text-white shadow-soft backdrop-blur">
           <div className="relative flex items-center justify-between gap-3">
@@ -608,6 +609,8 @@ export default function App() {
           />
         </div>
       )}
+
+      <Footer />
     </div>
   );
 }
