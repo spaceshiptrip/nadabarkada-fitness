@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ChevronDown, ChevronUp, KeyRound, Menu, X } from 'lucide-react';
+import { ChevronDown, ChevronUp, KeyRound, LogOut, Menu, X } from 'lucide-react';
 import Header from '@/components/Header';
 import RulesCard from '@/components/RulesCard';
 import ProfilePanel from '@/components/ProfilePanel';
@@ -36,12 +36,22 @@ export default function App() {
   const [message, setMessage] = useState('');
   const [showRules, setShowRules] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
-  const [selectedParticipantId, setSelectedParticipantId] = useState('');
+  const STAY_LOGGED_IN_KEY = 'fitness-challenge:stay-logged-in-as';
+
+  const [selectedParticipantId, setSelectedParticipantId] = useState(
+    () => window.localStorage.getItem(STAY_LOGGED_IN_KEY) || ''
+  );
   const [confirmedParticipantId, setConfirmedParticipantId] = useState('');
   const [showNavMenu, setShowNavMenu] = useState(false);
   const [showParticipantMenu, setShowParticipantMenu] = useState(false);
-  const [authenticatedParticipantId, setAuthenticatedParticipantId] = useState('');
+  const [authenticatedParticipantId, setAuthenticatedParticipantId] = useState(
+    () => window.localStorage.getItem(STAY_LOGGED_IN_KEY) || ''
+  );
   const [showPinReminder, setShowPinReminder] = useState(false);
+  const [logDate, setLogDate] = useState(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  });
 
   async function loadAll() {
     try {
@@ -71,6 +81,10 @@ export default function App() {
   const derivedParticipants = useMemo(
     () => mergeParticipantsWithBaselines(participants, dailyLogs),
     [participants, dailyLogs]
+  );
+  const selectedParticipantLogs = useMemo(
+    () => dailyLogs.filter((log) => log.participantId === selectedParticipantId),
+    [dailyLogs, selectedParticipantId]
   );
   const selectedParticipant = useMemo(
     () => derivedParticipants.find((participant) => participant.id === selectedParticipantId) || null,
@@ -138,16 +152,25 @@ export default function App() {
     }
   }
 
-  async function handleAuthenticate(participantId, pin) {
+  async function handleAuthenticate(participantId, pin, stayLoggedIn = false) {
     const result = await verifyParticipantPin(participantId, pin);
     if (result.ok) {
       setAuthenticatedParticipantId(participantId);
+      if (stayLoggedIn) {
+        window.localStorage.setItem(STAY_LOGGED_IN_KEY, participantId);
+      }
       const pinChangedKey = `fitness-challenge:pin-changed:${participantId}`;
       if (!window.localStorage.getItem(pinChangedKey)) {
         setShowPinReminder(true);
       }
     }
     return result;
+  }
+
+  function handleLogout() {
+    setAuthenticatedParticipantId('');
+    setShowPinReminder(false);
+    window.localStorage.removeItem(STAY_LOGGED_IN_KEY);
   }
 
   function handlePinChanged(participantId) {
@@ -221,7 +244,7 @@ export default function App() {
                 {selectedParticipant ? (
                   <>
                     <div className="truncate text-sm font-semibold text-white">{selectedParticipant.name}</div>
-                    <div className="text-xs text-blue-200">Change ▾</div>
+                    <div className="text-xs text-blue-200">{isAuthenticated ? 'Logged in ▾' : 'Change ▾'}</div>
                   </>
                 ) : (
                   <div className="text-sm text-blue-200">Select Participant ▾</div>
@@ -232,44 +255,72 @@ export default function App() {
 
             {showParticipantMenu && (
               <>
-                <div
-                  className="fixed inset-0 z-40"
-                  onClick={() => setShowParticipantMenu(false)}
-                />
+                <div className="fixed inset-0 z-40" onClick={() => setShowParticipantMenu(false)} />
                 <div className="absolute right-0 top-full z-50 mt-3 w-64 rounded-2xl border border-white/20 bg-gradient-to-b from-blue-600 to-indigo-700 p-2 shadow-soft">
-                  <button
-                    type="button"
-                    onClick={() => { handleParticipantSelection(''); setShowParticipantMenu(false); }}
-                    className={`flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm hover:bg-white/15 ${!selectedParticipantId ? 'bg-white/10' : ''}`}
-                  >
-                    <div className="h-8 w-8 flex-shrink-0 rounded-full border border-white/30 bg-white/10" />
-                    <span className="text-blue-100">Select Participant</span>
-                    {!selectedParticipantId && <span className="ml-auto text-xs text-white">✓</span>}
-                  </button>
-                  {derivedParticipants.map((p) => (
-                    <button
-                      key={p.id || p.name}
-                      type="button"
-                      onClick={() => { handleParticipantSelection(p.id); setShowParticipantMenu(false); }}
-                      className={`flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm text-white hover:bg-white/15 ${selectedParticipantId === p.id ? 'bg-white/15' : ''}`}
-                    >
-                      <img
-                        src={getParticipantProfileImage(p.profileImage)}
-                        alt={p.name}
-                        className="h-8 w-8 flex-shrink-0 rounded-full border border-white/30 object-cover"
-                      />
-                      <span className="min-w-0 flex-1 truncate font-medium">{p.name}</span>
-                      {selectedParticipantId === p.id && <span className="flex-shrink-0 text-xs">✓</span>}
-                    </button>
-                  ))}
-                  <div className="mt-1 border-t border-white/15 pt-1">
-                    <a
-                      href={`sms:${ADMIN_PHONE_E164}?body=${encodeURIComponent(ADMIN_SMS_BODY)}`}
-                      className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-xs text-blue-200 hover:bg-white/10"
-                    >
-                      <span>Not listed? Text Jay to register</span>
-                    </a>
-                  </div>
+                  {isAuthenticated ? (
+                    <>
+                      <div className="flex items-center gap-3 rounded-xl bg-white/10 px-3 py-2">
+                        <img
+                          src={getParticipantProfileImage(selectedParticipant?.profileImage)}
+                          alt={selectedParticipant?.name}
+                          className="h-8 w-8 flex-shrink-0 rounded-full border border-white/30 object-cover"
+                        />
+                        <div className="min-w-0 flex-1">
+                          <div className="truncate text-sm font-semibold text-white">{selectedParticipant?.name}</div>
+                          {selectedParticipant?.teamName && (
+                            <div className="truncate text-xs text-blue-200">{selectedParticipant.teamName}</div>
+                          )}
+                        </div>
+                        <span className="flex-shrink-0 text-xs text-white">✓</span>
+                      </div>
+                      <div className="mt-1 border-t border-white/15 pt-1">
+                        <button
+                          type="button"
+                          onClick={() => { handleLogout(); setShowParticipantMenu(false); }}
+                          className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm text-blue-200 hover:bg-white/15 hover:text-white"
+                        >
+                          <LogOut className="h-4 w-4" />
+                          Log out
+                        </button>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => { handleParticipantSelection(''); setShowParticipantMenu(false); }}
+                        className={`flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm hover:bg-white/15 ${!selectedParticipantId ? 'bg-white/10' : ''}`}
+                      >
+                        <div className="h-8 w-8 flex-shrink-0 rounded-full border border-white/30 bg-white/10" />
+                        <span className="text-blue-100">Select Participant</span>
+                        {!selectedParticipantId && <span className="ml-auto text-xs text-white">✓</span>}
+                      </button>
+                      {derivedParticipants.map((p) => (
+                        <button
+                          key={p.id || p.name}
+                          type="button"
+                          onClick={() => { handleParticipantSelection(p.id); setShowParticipantMenu(false); }}
+                          className={`flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm text-white hover:bg-white/15 ${selectedParticipantId === p.id ? 'bg-white/15' : ''}`}
+                        >
+                          <img
+                            src={getParticipantProfileImage(p.profileImage)}
+                            alt={p.name}
+                            className="h-8 w-8 flex-shrink-0 rounded-full border border-white/30 object-cover"
+                          />
+                          <span className="min-w-0 flex-1 truncate font-medium">{p.name}</span>
+                          {selectedParticipantId === p.id && <span className="flex-shrink-0 text-xs">✓</span>}
+                        </button>
+                      ))}
+                      <div className="mt-1 border-t border-white/15 pt-1">
+                        <a
+                          href={`sms:${ADMIN_PHONE_E164}?body=${encodeURIComponent(ADMIN_SMS_BODY)}`}
+                          className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-xs text-blue-200 hover:bg-white/10"
+                        >
+                          <span>Not listed? Text Jay to register</span>
+                        </a>
+                      </div>
+                    </>
+                  )}
                 </div>
               </>
             )}
@@ -410,11 +461,15 @@ export default function App() {
           <div id="daily-log-entry" className="min-w-0">
             <DailyLogForm
               participant={selectedParticipant}
+              participantLogs={selectedParticipantLogs}
               onSubmit={handleLogEntry}
               loading={submittingLog}
               confirmedParticipantId={confirmedParticipantId}
               isAuthenticated={isAuthenticated}
+              isAdmin={isAdmin}
               onAuthenticate={handleAuthenticate}
+              onLogout={handleLogout}
+              onDateChange={setLogDate}
             />
           </div>
           <div id="my-rings" className="min-w-0">
@@ -423,6 +478,7 @@ export default function App() {
               logs={dailyLogs}
               selectedParticipantId={selectedParticipantId}
               isAuthenticated={isAuthenticated}
+              selectedDate={logDate}
             />
           </div>
         </div>

@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react';
-import { ClipboardCheck, KeyRound, MessageSquare } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { ClipboardCheck, KeyRound, LogOut, MessageSquare } from 'lucide-react';
 import {
   calculateActivityPoints,
   calculateWorkoutPoints,
@@ -36,14 +36,42 @@ const initialState = {
   notes: '',
 };
 
-export default function DailyLogForm({ participant, onSubmit, loading, confirmedParticipantId, isAuthenticated, onAuthenticate }) {
+export default function DailyLogForm({ participant, participantLogs, onSubmit, loading, confirmedParticipantId, isAuthenticated, isAdmin, onAuthenticate, onLogout, onDateChange }) {
   const [form, setForm] = useState(initialState);
   const [pinInput, setPinInput] = useState('');
   const [pinError, setPinError] = useState('');
   const [pinLoading, setPinLoading] = useState(false);
+  const [stayLoggedIn, setStayLoggedIn] = useState(false);
+
+  // Pre-fill form from existing log when date or participant changes
+  useEffect(() => {
+    if (!participant) return;
+    const existing = (participantLogs || []).find(
+      (log) => String(log.date || '').slice(0, 10) === form.date
+    );
+    if (existing) {
+      setForm({
+        date: form.date,
+        activeMinutes: existing.activeMinutes != null ? String(existing.activeMinutes) : '',
+        workoutDone: Boolean(existing.workoutDone),
+        steps: existing.steps != null ? String(existing.steps) : '',
+        mobilityDone: Boolean(existing.mobilityDone),
+        notes: existing.notes || '',
+      });
+    } else {
+      setForm((prev) => ({ ...initialState, date: prev.date }));
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.date, participant?.id, participantLogs]);
 
   const showConfirmedTitle =
     Boolean(participant && confirmedParticipantId && participant.id === confirmedParticipantId);
+
+  const existingEntry = useMemo(() => {
+    return (participantLogs || []).find(
+      (log) => String(log.date || '').slice(0, 10) === form.date
+    ) || null;
+  }, [participantLogs, form.date]);
 
   const breakdown = useMemo(() => {
     const activity = calculateActivityPoints(Number(form.activeMinutes || 0));
@@ -62,7 +90,7 @@ export default function DailyLogForm({ participant, onSubmit, loading, confirmed
     setPinError('');
     setPinLoading(true);
     try {
-      const result = await onAuthenticate(participant.id, pinInput.trim());
+      const result = await onAuthenticate(participant.id, pinInput.trim(), stayLoggedIn);
       if (!result.ok) {
         setPinError('Incorrect PIN. Try again.');
         setPinInput('');
@@ -77,6 +105,7 @@ export default function DailyLogForm({ participant, onSubmit, loading, confirmed
   const submit = async (event) => {
     event.preventDefault();
     if (!participant) return;
+    if (!isAdmin && form.date > todayIso()) return;
     await onSubmit({
       date: form.date,
       participantId: participant.id,
@@ -87,7 +116,6 @@ export default function DailyLogForm({ participant, onSubmit, loading, confirmed
       mobilityDone: form.mobilityDone,
       notes: form.notes.trim(),
     });
-    setForm((prev) => ({ ...initialState, date: prev.date }));
   };
 
   const breakdownRows = [
@@ -106,7 +134,7 @@ export default function DailyLogForm({ participant, onSubmit, loading, confirmed
             alt={participant?.name || 'Participant'}
             className="h-12 w-12 flex-shrink-0 rounded-full border object-cover"
           />
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <CardTitle className="flex items-center gap-2">
               <ClipboardCheck className="h-5 w-5" />
               {participant
@@ -114,12 +142,26 @@ export default function DailyLogForm({ participant, onSubmit, loading, confirmed
                 : 'Daily log entry'}
             </CardTitle>
           </div>
+          {isAuthenticated && onLogout && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={onLogout}
+              className="flex-shrink-0 text-muted-foreground hover:text-foreground"
+            >
+              <LogOut className="mr-1.5 h-4 w-4" />
+              Log out
+            </Button>
+          )}
         </div>
         <CardDescription>
           {!participant
             ? 'Select your name in the header to start logging.'
             : !isAuthenticated
             ? `Enter your PIN to unlock the log form for ${participant.name}.`
+            : existingEntry
+            ? `Editing your entry for ${form.date}. Changes will overwrite the saved entry.`
             : 'Enter daily stats and preview your score before submitting.'}
         </CardDescription>
       </CardHeader>
@@ -176,6 +218,15 @@ export default function DailyLogForm({ participant, onSubmit, loading, confirmed
                 <p className="text-center text-xs font-medium text-red-600">{pinError}</p>
               )}
             </div>
+            <label className="flex cursor-pointer items-center justify-center gap-2 text-xs text-slate-500">
+              <input
+                type="checkbox"
+                className="h-3.5 w-3.5 rounded border"
+                checked={stayLoggedIn}
+                onChange={(e) => setStayLoggedIn(e.target.checked)}
+              />
+              Stay logged in on this device
+            </label>
             <Button type="submit" disabled={pinLoading || !pinInput.trim()}>
               {pinLoading ? 'Verifying…' : 'Unlock'}
             </Button>
@@ -191,7 +242,11 @@ export default function DailyLogForm({ participant, onSubmit, loading, confirmed
                 type="date"
                 className="min-w-0"
                 value={form.date}
-                onChange={(e) => setForm((prev) => ({ ...prev, date: e.target.value }))}
+                max={isAdmin ? undefined : todayIso()}
+                onChange={(e) => {
+                  setForm((prev) => ({ ...prev, date: e.target.value }));
+                  onDateChange?.(e.target.value);
+                }}
               />
             </div>
 
@@ -251,7 +306,7 @@ export default function DailyLogForm({ participant, onSubmit, loading, confirmed
             </div>
 
             <Button type="submit" disabled={loading}>
-              {loading ? 'Saving...' : 'Submit daily log'}
+              {loading ? 'Saving...' : existingEntry ? 'Update entry' : 'Submit daily log'}
             </Button>
           </form>
 

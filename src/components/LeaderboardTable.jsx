@@ -1,6 +1,6 @@
 import { Trophy } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { getParticipantProfileImage } from '@/lib/participants';
 
 export default function LeaderboardTable({
   rows,
@@ -15,45 +15,55 @@ export default function LeaderboardTable({
           <Trophy className="h-5 w-5" />
           {title}
         </CardTitle>
-        <CardDescription>
-          {description} Source: {source || 'unknown'}.
-        </CardDescription>
+        <CardDescription>{description}</CardDescription>
       </CardHeader>
       <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Rank</TableHead>
-              <TableHead>Name</TableHead>
-              <TableHead>Device</TableHead>
-              <TableHead>Team</TableHead>
-              <TableHead>Baseline active</TableHead>
-              <TableHead>Baseline steps</TableHead>
-              <TableHead className="text-right">Points</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {rows.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={7} className="text-center text-muted-foreground">
-                  No leaderboard data yet.
-                </TableCell>
-              </TableRow>
-            ) : (
-              rows.map((row, index) => (
-                <TableRow key={`${row.name}-${index}`}>
-                  <TableCell className="font-semibold">#{index + 1}</TableCell>
-                  <TableCell>{row.name}</TableCell>
-                  <TableCell>{row.deviceType || '—'}</TableCell>
-                  <TableCell>{row.teamName || '—'}</TableCell>
-                  <TableCell>{row.baselineActiveMinutes ?? '—'}</TableCell>
-                  <TableCell>{row.baselineSteps ?? '—'}</TableCell>
-                  <TableCell className="text-right font-semibold">{row.totalPoints ?? row.weeklyTotal ?? 0}</TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+        <div className="space-y-2">
+          {rows.length === 0 ? (
+            <div className="py-8 text-center text-sm text-muted-foreground">
+              No leaderboard data yet.
+            </div>
+          ) : (
+            rows.map((row, index) => {
+              const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : null;
+              return (
+                <div
+                  key={`${row.name}-${index}`}
+                  className={`flex items-center gap-3 rounded-2xl border p-3 ${
+                    index === 0 ? 'border-yellow-200 bg-yellow-50' :
+                    index === 1 ? 'border-slate-200 bg-slate-50' :
+                    index === 2 ? 'border-orange-100 bg-orange-50' : 'bg-white'
+                  }`}
+                >
+                  <div className="w-8 flex-shrink-0 text-center">
+                    {medal ? (
+                      <span className="text-xl">{medal}</span>
+                    ) : (
+                      <span className="text-sm font-semibold text-muted-foreground">#{index + 1}</span>
+                    )}
+                  </div>
+                  <img
+                    src={getParticipantProfileImage(row.profileImage)}
+                    alt={row.name}
+                    className="h-10 w-10 flex-shrink-0 rounded-full border object-cover"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-sm font-semibold text-slate-800">{row.name}</div>
+                    {row.teamName && (
+                      <div className="truncate text-xs text-muted-foreground">{row.teamName}</div>
+                    )}
+                  </div>
+                  <div className="flex-shrink-0 text-right">
+                    <div className="text-lg font-bold tabular-nums text-primary">
+                      {row.totalPoints ?? row.weeklyTotal ?? 0}
+                    </div>
+                    <div className="text-xs text-muted-foreground">pts</div>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
       </CardContent>
     </Card>
   );
