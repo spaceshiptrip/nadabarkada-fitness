@@ -58,7 +58,7 @@ export default function Header() {
     <header className="mb-8 rounded-3xl border bg-gradient-to-br from-blue-600 to-indigo-700 p-6 text-white shadow-soft md:p-8">
       <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em]">
         <Trophy className="h-4 w-4" />
-        NadaBarkada Fitness Challenge
+        Innaugural NadaBarkada Fitness Challenge 2026
       </div>
 
       <div className="flex flex-col items-center gap-6 sm:flex-row sm:items-end sm:justify-around">
