@@ -241,6 +241,20 @@ export async function updateParticipant(payload) {
   return postJson({ action: 'updateParticipant', ...payload });
 }
 
+export async function verifyParticipantPin(participantId, pin) {
+  if (!APP_SCRIPT_URL) {
+    // Mock mode: auto-authenticate if participant has no pin set
+    const participants = loadMockParticipants();
+    const participant = participants.find((p) => p.id === participantId);
+    if (!participant) return { ok: false, error: 'not_found' };
+    const storedPin = String(participant.pin || '').trim();
+    if (!storedPin) return { ok: true, source: 'mock' };
+    if (storedPin === String(pin).trim()) return { ok: true, source: 'mock' };
+    return { ok: false, error: 'invalid_pin', source: 'mock' };
+  }
+  return postJson({ action: 'verifyParticipantPin', participantId, pin });
+}
+
 export async function logDailyEntry(payload) {
   if (!APP_SCRIPT_URL) {
     const nextEntry = withComputedDailyPoints(payload);

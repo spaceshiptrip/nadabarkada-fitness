@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { ClipboardCheck, MessageSquare } from 'lucide-react';
+import { ClipboardCheck, KeyRound, MessageSquare } from 'lucide-react';
 import {
   calculateActivityPoints,
   calculateWorkoutPoints,
@@ -36,8 +36,11 @@ const initialState = {
   notes: '',
 };
 
-export default function DailyLogForm({ participant, onSubmit, loading, confirmedParticipantId }) {
+export default function DailyLogForm({ participant, onSubmit, loading, confirmedParticipantId, isAuthenticated, onAuthenticate }) {
   const [form, setForm] = useState(initialState);
+  const [pinInput, setPinInput] = useState('');
+  const [pinError, setPinError] = useState('');
+  const [pinLoading, setPinLoading] = useState(false);
 
   const showConfirmedTitle =
     Boolean(participant && confirmedParticipantId && participant.id === confirmedParticipantId);
@@ -52,6 +55,24 @@ export default function DailyLogForm({ participant, onSubmit, loading, confirmed
   }, [form]);
 
   const challengeWeek = getChallengeWeek(form.date);
+
+  const submitPin = async (event) => {
+    event.preventDefault();
+    if (!participant || !pinInput.trim()) return;
+    setPinError('');
+    setPinLoading(true);
+    try {
+      const result = await onAuthenticate(participant.id, pinInput.trim());
+      if (!result.ok) {
+        setPinError('Incorrect PIN. Try again.');
+        setPinInput('');
+      }
+    } catch {
+      setPinError('Could not verify PIN. Check your connection.');
+    } finally {
+      setPinLoading(false);
+    }
+  };
 
   const submit = async (event) => {
     event.preventDefault();
@@ -95,9 +116,11 @@ export default function DailyLogForm({ participant, onSubmit, loading, confirmed
           </div>
         </div>
         <CardDescription>
-          {participant
-            ? 'Enter daily stats and preview your score before submitting.'
-            : 'Select your name in the header to start logging.'}
+          {!participant
+            ? 'Select your name in the header to start logging.'
+            : !isAuthenticated
+            ? `Enter your PIN to unlock the log form for ${participant.name}.`
+            : 'Enter daily stats and preview your score before submitting.'}
         </CardDescription>
       </CardHeader>
 
@@ -124,6 +147,39 @@ export default function DailyLogForm({ participant, onSubmit, loading, confirmed
               </div>
             </div>
           </div>
+        </CardContent>
+      ) : !isAuthenticated ? (
+        <CardContent>
+          <form onSubmit={submitPin} className="grid gap-4 rounded-2xl border bg-slate-50 p-6">
+            <div className="flex flex-col items-center gap-2 text-center">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full border bg-white">
+                <KeyRound className="h-5 w-5 text-slate-500" />
+              </div>
+              <div className="text-sm font-semibold text-slate-800">Enter your PIN</div>
+              <div className="text-xs text-slate-500">
+                Enter the PIN assigned to {participant.name} to access the log form.
+              </div>
+            </div>
+            <div className="grid gap-2">
+              <Input
+                type="password"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                maxLength={8}
+                placeholder="PIN"
+                value={pinInput}
+                onChange={(e) => { setPinInput(e.target.value); setPinError(''); }}
+                className="text-center text-lg tracking-widest"
+                autoFocus
+              />
+              {pinError && (
+                <p className="text-center text-xs font-medium text-red-600">{pinError}</p>
+              )}
+            </div>
+            <Button type="submit" disabled={pinLoading || !pinInput.trim()}>
+              {pinLoading ? 'Verifying…' : 'Unlock'}
+            </Button>
+          </form>
         </CardContent>
       ) : (
         <CardContent className="grid gap-6 xl:grid-cols-[1.2fr,0.8fr]">

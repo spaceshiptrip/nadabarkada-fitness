@@ -1,4 +1,5 @@
 const SPREADSHEET_ID = '1wqTMjXCBFA8PZg2L5Tg0WLZPAxO_TEantDIeNenRdZ4';
+const PIN_SALT_PROPERTY_KEY = 'FITNESS_PIN_SALT_V1';
 const PARTICIPANTS_SHEET = 'Participants';
 const DAILY_LOGS_SHEET = 'DailyLogs';
 const PARTICIPANT_HEADERS = ['UserId', 'Name', 'DeviceType', 'TeamName', 'BaselineActiveMinutes', 'BaselineSteps', 'Active', 'CreatedAt', 'ProfileImage', 'BaselineOverride', 'PhoneNumber', 'Pin'];
@@ -45,6 +46,11 @@ function doPost(e) {
     if (action === 'updateParticipant') {
       const saved = updateParticipant_(payload);
       return json_({ ok: true, data: saved, source: 'live' });
+    }
+
+    if (action === 'verifyParticipantPin') {
+      const result = verifyParticipantPin_(payload);
+      return json_(result);
     }
 
     return json_({ ok: false, error: 'Unknown action' });
@@ -117,16 +123,16 @@ function addDailyLog_(payload) {
   const challengeWeek = getChallengeWeek_(entry.date);
 
   const row = [
-    entry.date,
-    entry.participantId,
-    entry.name,
-    entry.activeMinutes,
-    entry.workoutDone,
-    entry.steps,
-    entry.mobilityDone,
-    entry.notes,
-    dailyPoints,
-    challengeWeek,
+    String(entry.date),
+    String(entry.participantId),
+    String(entry.name),
+    number_(entry.activeMinutes),
+    toBool_(entry.workoutDone),
+    number_(entry.steps),
+    toBool_(entry.mobilityDone),
+    String(entry.notes || ''),
+    number_(dailyPoints),
+    number_(challengeWeek),
     new Date(),
   ];
 
@@ -560,6 +566,86 @@ function sum_(values) {
 function average_(values) {
   if (!values || !values.length) return 0;
   return sum_(values) / values.length;
+}
+
+/** -------- Participant PIN auth -------- */
+
+function verifyParticipantPin_(payload) {
+  var participantId = String(payload.participantId || '').trim();
+  var pin = String(payload.pin || '').trim();
+
+  if (!participantId || !pin) return { ok: false, error: 'bad_request' };
+
+  var participants = getParticipantsRaw_();
+  var participant = participants.find(function(p) { return String(p.id || '').trim() === participantId; });
+  if (!participant) return { ok: false, error: 'not_found' };
+
+  var storedHash = String(participant.pin || '').trim();
+
+  // No PIN set on this participant — treat as open access
+  if (!storedHash) return { ok: true, source: 'live' };
+
+  if (!verifyPin_(pin, storedHash)) return { ok: false, error: 'invalid_pin' };
+
+  return { ok: true, source: 'live' };
+}
+
+function verifyPin_(pin, storedHash) {
+  if (!storedHash) return false;
+  var salt = getPinSalt_();
+  var computed = sha256Hex_(salt + ':' + String(pin).trim());
+  return computed === String(storedHash).trim();
+}
+
+function sha256Hex_(s) {
+  var bytes = Utilities.computeDigest(
+    Utilities.DigestAlgorithm.SHA_256,
+    s,
+    Utilities.Charset.UTF_8
+  );
+  return bytes.map(function(b) {
+    var hex = (b < 0 ? b + 256 : b).toString(16);
+    return hex.length === 1 ? '0' + hex : hex;
+  }).join('');
+}
+
+function getPinSalt_() {
+  var props = PropertiesService.getScriptProperties();
+  var salt = props.getProperty(PIN_SALT_PROPERTY_KEY);
+  if (!salt) throw new Error('PIN salt not set. Run setPinSalt_() once from the Apps Script editor.');
+  return salt;
+}
+
+/**
+ * One-time setup: run this once from the Apps Script editor (Run → setPinSalt_).
+ * Creates a secret salt stored in script properties. Never run again after PINs are set.
+ */
+function setPinSalt_() {
+  var props = PropertiesService.getScriptProperties();
+  if (props.getProperty(PIN_SALT_PROPERTY_KEY)) {
+    Logger.log('Salt already set — skipping.');
+    return;
+  }
+  var salt = Utilities.getUuid() + Utilities.getUuid();
+  props.setProperty(PIN_SALT_PROPERTY_KEY, salt);
+  Logger.log('Salt created.');
+}
+
+/**
+ * Helper: run from the editor to get the hash for a PIN to paste into the sheet.
+ * Change participantPin to the PIN you want, then copy the logged hash into
+ * the participant's Pin column in the Participants sheet.
+ *
+ * Example usage:
+ *   1. Set participantPin below to the desired PIN (e.g. '1234')
+ *   2. Run generateParticipantPinHash from the editor
+ *   3. Copy the logged hash into the Pin column for that participant row
+ */
+function generateParticipantPinHash() {
+  var participantPin = '1234'; // <-- change this to the PIN you want
+  var salt = getPinSalt_();
+  var hash = sha256Hex_(salt + ':' + participantPin);
+  Logger.log('PIN hash: ' + hash);
 }
 
 function formatDate_(value) {

@@ -15,6 +15,7 @@ import {
   getWeeklySummary,
   logDailyEntry,
   updateParticipant,
+  verifyParticipantPin,
 } from '@/lib/api';
 import { DEFAULT_PROFILE_IMAGE, getParticipantProfileImage, mergeParticipantsWithBaselines } from '@/lib/participants';
 import { ADMIN_PHONE_E164, ADMIN_SMS_BODY } from '@/lib/config';
@@ -36,6 +37,7 @@ export default function App() {
   const [confirmedParticipantId, setConfirmedParticipantId] = useState('');
   const [showNavMenu, setShowNavMenu] = useState(false);
   const [showParticipantMenu, setShowParticipantMenu] = useState(false);
+  const [authenticatedParticipantId, setAuthenticatedParticipantId] = useState('');
 
   async function loadAll() {
     try {
@@ -126,6 +128,17 @@ export default function App() {
     if (nextParticipantId !== confirmedParticipantId) {
       setConfirmedParticipantId('');
     }
+    if (nextParticipantId !== authenticatedParticipantId) {
+      setAuthenticatedParticipantId('');
+    }
+  }
+
+  async function handleAuthenticate(participantId, pin) {
+    const result = await verifyParticipantPin(participantId, pin);
+    if (result.ok) {
+      setAuthenticatedParticipantId(participantId);
+    }
+    return result;
   }
 
   function scrollToSection(sectionId) {
@@ -329,14 +342,17 @@ export default function App() {
               onSubmit={handleLogEntry}
               loading={submittingLog}
               confirmedParticipantId={confirmedParticipantId}
+              isAuthenticated={!!selectedParticipantId && selectedParticipantId === authenticatedParticipantId}
+              onAuthenticate={handleAuthenticate}
             />
           </div>
           <div id="my-rings" className="min-w-0">
             <MyRingsPanel
               participants={derivedParticipants}
               logs={dailyLogs}
-                selectedParticipantId={selectedParticipantId}
-              />
+              selectedParticipantId={selectedParticipantId}
+              isAuthenticated={!!selectedParticipantId && selectedParticipantId === authenticatedParticipantId}
+            />
           </div>
         </div>
 
