@@ -3,17 +3,19 @@
 ## Sheet: Participants
 Headers:
 ```text
-UserId | Name | DeviceType | TeamName | BaselineActiveMinutes | BaselineSteps | Active | CreatedAt | ProfileImage | BaselineOverride | PhoneNumber | Pin
+UserId | Name | DeviceType | TeamName | BaselineActiveMinutes | BaselineSteps | Active | CreatedAt | ProfileImage | BaselineOverride | PhoneNumber | Pin | Role
 ```
 
 ### Notes
 - `UserId` is the stable participant identifier used by logs and future auth flows.
 - `BaselineActiveMinutes` is the participant’s average daily active minutes during Week 0.
 - `BaselineSteps` is the participant’s average daily steps during Week 0.
-- `Active` can be `TRUE` or `FALSE`.
+- `Active` is currently written as `1` for active and `0` for inactive by the backend.
 - `ProfileImage` stores the participant headshot or fallback image URL/data.
 - `BaselineOverride` controls whether manual baseline values override computed Week 0 baselines.
-- `PhoneNumber` and `Pin` are reserved for future lightweight authentication.
+- `PhoneNumber` is reserved for future login and participant contact flows.
+- `Pin` stores the salted SHA-256 hash of the participant PIN, not the raw PIN.
+- `Role` is currently used for records such as `participant` or `admin`.
 
 ## Sheet: DailyLogs
 Headers:

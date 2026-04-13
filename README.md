@@ -263,72 +263,43 @@ High level:
 4. Set the spreadsheet ID in `Code.gs`.
 5. Deploy as a web app.
 
-## TODO
+## Status
 
-### Phase 1: Simple participant flow
+### Implemented
 
-- Skip full participant authentication at launch.
-- Pre-create participant records directly in the backend sheet.
-- Generate and keep a stable `ParticipantId` for each participant.
-- Make the top header avatar/name area the main participant selector dropdown.
-- Persist the selected participant in `localStorage` so the app restores that participant on refresh.
-- If no participant is stored in `localStorage`, keep the app in an unselected state on load.
-- Tell participants to select themselves from the participant list in the app.
-- Let participants log daily activity without logging in.
-- If no participant is selected, disable all `My Rings` controls and views.
-- If no participant is selected, disable all `Daily Log Entry` inputs except `Select participant`.
-- If no participant is selected, still allow viewing the leaderboard and weekly leaderboard rings.
-- Add a visible callout that points the user to `Select participant` when nothing is selected.
-- Add a `Not listed? Request registration` option near the participant selector instead of self-service participant creation.
-- Make that option open the user's SMS app with a prefilled message to Jay, for example:
-  - `Hi Jay, can you register me for the fitness challenge? My name is [Your Name].`
-- On mobile, use an `sms:` link with a prefilled body.
-- On desktop, also show the phone number and a copyable fallback in case SMS deep linking is not available.
-- Create a Profile/Settings panel so a selected participant can update their displayed name and profile picture.
-- Add a proper settings menu triggered from a three-vertical-dots control.
-- Move participant-facing settings and profile actions into that menu-driven settings area.
-- Add dark mode support and make it configurable from settings.
-- Once a participant is selected, repurpose the current admin/profile area into a participant-facing Profile panel.
-- Make sure profile changes do not change the participant's stable `ParticipantId`.
-- Keep phone number and PIN fields in the backend schema for future use, even if login is not enabled yet.
-- If needed, hide or remove the in-app Admin Panel for Phase 1 and manage participant creation directly in the sheet/backend.
+- Stable participant IDs are generated in the Apps Script backend and used throughout the app.
+- Participant records support `ProfileImage`, `BaselineOverride`, `PhoneNumber`, `Pin`, and `Role`.
+- Participant selection persists in browser `localStorage`, so the app restores the previously selected participant on refresh.
+- The app supports participant PIN verification before unlocking the daily log form.
+- Participants can change their own PIN from the profile panel.
+- Participants can edit their display name, device type, and profile picture without changing their stable participant ID.
+- The app includes an in-UI `Not registered yet?` SMS flow to contact Jay for registration.
+- Baseline values can be computed from Week 0 logs or manually overridden.
+- The frontend can run in live mode against Apps Script or in mock mode with browser `localStorage`.
+- An Admin Panel exists in the UI for adding participants, editing participant details, and resetting participant PINs.
+- GitHub Pages deployment is already configured, including the custom-domain `CNAME` flow for `fitness.nadabarkada.com`.
 
-### Phase 1 reasoning
+### Still Open
 
-- The challenge is honor-system based, so the biggest UX risk is friction, not abuse.
-- Requiring full login on day one may reduce participation more than it improves control.
-- Keeping participant creation admin-controlled preserves clean participant records and stable `ParticipantId` values.
-- Avoiding self-service registration in Phase 1 reduces duplicate users, inconsistent names, and identity cleanup work.
-- A header participant selector with `localStorage` keeps the app feeling personal without making users log in every time.
-- A `Request registration` SMS flow gives unregistered users a clear path forward without exposing account creation in the app.
-- This keeps Phase 1 simple while preserving a clean upgrade path to Phase 2 login with phone number and PIN.
+- Add real admin authentication for admin-only actions. The current Admin Panel exists, but the README plan for a separate admin login/session flow is not implemented yet.
+- Add admin seed/reset utilities in Apps Script and the frontend so test data can be created and cleared safely without manual sheet edits.
+- Decide whether the Admin Panel should remain visible in the app, be protected behind admin auth, or be removed from the public participant flow.
+- Add a proper settings menu if the product still wants a dedicated three-dots/settings surface instead of the current panel layout.
+- Add dark mode and a user-visible theme toggle if that is still a launch requirement.
+- Add a stronger backend auth model if the app should eventually support true phone-number-plus-PIN login rather than the current participant-selection-plus-PIN unlock pattern.
+- Add Strava integration for partial automation of activity minutes and workout detection.
 
-### Phase 1.5: Lightweight guardrails
+### Deferred / Future
 
-- Decide whether profile editing should require a lightweight check, or remain honor-system only.
-- Consider remembering the last selected participant locally on the device for convenience.
-- Keep all log joins and participant identity keyed by `ParticipantId`, not display name.
-- Allow the admin to seed participant display name, phone number, and PIN in the backend ahead of future auth work.
+- Full phone-number login and role-based sessions for participants and admins.
+- Additional auth hardening such as phone lookup hashes, named admins, rotating credentials, or Google-account restrictions.
+- More advanced operational tools beyond the initial admin seed/reset workflow.
+- Strava estimated-steps support and review UX after core Strava import works.
 
-### Phase 2: Authentication and roles
+### Notes
 
-- Create a login screen that authenticates with phone number and PIN.
-- Add a `Role` field in the sheet/backend so users can be either `admin` or `participant`.
-- If the logged-in user role is `admin`, show the Admin Panel.
-- If the logged-in user role is `participant`, hide the Admin Panel.
-- Users should log in with phone number and PIN, while the UI shows their name and profile picture after login.
-- Allow a logged-in user to change their login phone number and PIN from their profile/settings area.
-- Changing phone number or PIN should update the stored backend hashes without changing the participant's stable `ParticipantId`.
-
-### Backend auth workflow
-
-- Add an admin workflow to seed a participant’s display name, phone number, and PIN.
-- In the backend, generate the participant ID, hash the phone number for login lookup, and hash/obfuscate the PIN after the initial seed flow.
-- Follow the existing Google Apps Script pattern in `../pickle.nadabarkada.com/pickle/backend/google-apps-script/Code.gs`:
-  - run `setPinSalt_()` once to create the script salt
-  - use `generateMyHash()` as the reference pattern for producing the stored PIN hash
-- Add a dedicated admin migration/helper method in this project’s `Code.gs` to hash or obfuscate seeded phone/PIN credentials after the initial seed pass.
-6. Put the deployment URL into `VITE_APP_SCRIPT_URL`.
+- The old phased TODO plan in this README predated several features that are now implemented.
+- Treat the sections below as the active plan of record, especially `Next Steps`, `Admin Reset/Seed Workflow Proposal`, and `Strava Integration Proposal`.
 
 ### Deployment migration: GitHub Pages custom domain
 
@@ -428,7 +399,8 @@ This section is the current handoff note for the next work session.
 
 ### 4) Test-data workflow
 
-- There is not yet an admin reset button in the UI
+- The UI currently has participant-management controls and participant PIN reset in the Admin Panel
+- There is not yet a full admin-only seed/reset workflow for bulk test data in the UI or Apps Script
 - Test data can be created directly through the UI by adding test participants and logs
 - For isolated frontend-only testing, remove `VITE_APP_SCRIPT_URL` locally and use mock mode with browser `localStorage`
 - To clear mock-mode test data, clear browser `localStorage` for this site
@@ -497,6 +469,110 @@ Implementation note for next session:
 - Reuse the existing reserved auth direction in the schema where practical, but keep admin auth separate from participant auth
 - Participant `PhoneNumber` and `Pin` fields should not be used as the global admin credential
 - Add a visible confirmation step before any destructive reset action
+
+### 8) Strava Integration Proposal
+
+- Goal: let participants connect Strava so the app can prefill activity minutes and workout completion from imported Strava activities
+- Keep GitHub Pages as the frontend host and keep Google Apps Script as the backend
+- Do not move this app to a Node, Django, or Docker backend just to support Strava
+
+Important product constraint:
+
+- Strava does not provide a reliable daily step-count API for this app's use case
+- Strava can provide activity data such as sport type, moving time, distance, and sometimes calories
+- Because of that, Strava can only partially automate this challenge
+- `ActiveMinutes` can be imported from Strava activities
+- `WorkoutDone` can be inferred from qualifying Strava activities
+- `Steps` cannot be directly imported from Strava and must remain either manual or estimated
+- `MobilityDone` should remain manual unless the user explicitly logs recovery activity in Strava
+
+Recommended MVP behavior:
+
+1. Add a `Connect Strava` action for each participant profile
+2. Send the participant through Strava OAuth
+3. Store Strava tokens server-side in Apps Script or the backing sheet, never in the frontend bundle
+4. Add a `Sync Strava` action to fetch recent activities
+5. Aggregate imported activities by participant and date
+6. Prefill or update `ActiveMinutes` from imported Strava activity moving time
+7. Set `WorkoutDone = true` when a qualifying Strava activity exists for that date
+8. Leave `MobilityDone` as manual input
+9. Leave `Steps` as manual input in the first version unless estimated steps are explicitly enabled
+10. Show `Last synced` and `Imported from Strava` indicators in the UI
+
+Estimated-steps option:
+
+- If desired, the app can estimate steps from Strava distance for step-like activities only
+- This should be treated as a user-facing estimate, not authoritative truth
+- Only estimate for activities such as `Walk`, `Run`, `TrailRun`, and `Hike`
+- Do not estimate steps for cycling, swimming, strength training, yoga, rowing, or similar activities
+- Suggested approximation:
+  - walking or hiking: about `1250 steps/km`
+  - running or trail running: about `1300-1400 steps/km`
+- Save the estimate separately or flag it with a source value such as `estimated_strava`
+- Show a note in the UI such as: `Estimated from Strava distance. Please review and adjust if needed.`
+- Manual edits should always override the estimate
+
+Technical implementation outline:
+
+1. Register a Strava application at `developers.strava.com`
+2. Add the correct callback URL for the Apps Script web app deployment
+3. Store `STRAVA_CLIENT_ID` and `STRAVA_CLIENT_SECRET` in Apps Script project properties
+4. Extend the backend schema to store per-participant Strava linkage metadata
+5. Add Apps Script endpoints for:
+   - `getStravaAuthUrl`
+   - `stravaOauthCallback`
+   - `syncParticipantStrava`
+   - `disconnectParticipantStrava`
+6. Add server-side token refresh logic in Apps Script
+7. Add frontend UI for connect, sync, and disconnect states
+8. Add a review flow so imported values can be inspected before users rely on them for scoring
+
+Suggested backend data additions:
+
+- Add participant fields such as:
+  - `StravaAthleteId`
+  - `StravaRefreshToken`
+  - `StravaScope`
+  - `StravaLastSyncedAt`
+  - `StravaConnected`
+- Add daily-log fields such as:
+  - `MinutesSource`
+  - `StepsSource`
+  - `ImportedActivityCount`
+  - `ImportNote`
+
+Suggested import rules:
+
+- Sum `moving_time` from all qualifying activities on the same local date into daily active minutes
+- Mark `WorkoutDone` true if any qualifying activity is at least 20 minutes
+- If estimated steps are enabled, sum estimated steps only from eligible activity types
+- Never overwrite a user-entered manual `Steps` value without clear confirmation
+- Preserve an audit trail that the row was imported or partially imported from Strava
+
+Policy and rollout notes:
+
+- New Strava apps may be limited until Strava approves broader usage beyond the developer's own account
+- Do not assume immediate multi-user rollout without reviewing current Strava app approval requirements
+- Make imported data private by default and only expose it in challenge views the participant has consented to
+- Be explicit in the UI that Strava does not provide exact daily steps for this app
+
+Recommended delivery order:
+
+1. Add README plan and schema notes
+2. Add backend participant fields for Strava linkage
+3. Add Apps Script auth and token storage
+4. Add connect/disconnect UI
+5. Add manual sync for one participant
+6. Import active minutes and workout detection only
+7. Add optional estimated steps with strong review messaging
+8. Add polish such as last-synced status and import notes
+
+Not recommended:
+
+- Do not put Strava client secrets in Vite env files used by the browser
+- Do not rely on frontend-only OAuth handling for token storage
+- Do not silently convert all imported distance to scored steps without a user-facing estimate warning
+- Do not treat Strava as a full replacement for manual entry in this challenge
 
 ### Baseline Week
 
