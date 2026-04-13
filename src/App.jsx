@@ -154,9 +154,24 @@ export default function App() {
       if (result?.ok && payload.participantId) {
         setConfirmedParticipantId(payload.participantId);
         const pts = result?.data?.dailyPoints;
-        toast.success(`Log saved for ${formatFriendlyDate(payload.date)}!`, {
-          description: pts != null ? `Daily points: ${pts} / 10` : 'Entry recorded successfully.',
-        });
+        const steps = Number(payload.steps || 0);
+        if (steps >= 10000) {
+          toast.success('Star earned ⭐ great work!', {
+            description: pts != null ? `Daily points: ${pts} / 10` : undefined,
+          });
+        } else if (steps >= 8000) {
+          toast.success("You're on a roll 🔥", {
+            description: pts != null ? `Daily points: ${pts} / 10` : undefined,
+          });
+        } else if (steps >= 6000) {
+          toast.success('Nice—ring closed 👍', {
+            description: pts != null ? `Daily points: ${pts} / 10` : undefined,
+          });
+        } else {
+          toast.success(`Log saved for ${formatFriendlyDate(payload.date)}!`, {
+            description: pts != null ? `Daily points: ${pts} / 10` : 'Entry recorded successfully.',
+          });
+        }
       }
     } catch (error) {
       setMessage(error.message || 'Failed to save daily log.');
