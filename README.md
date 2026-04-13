@@ -574,6 +574,84 @@ Not recommended:
 - Do not silently convert all imported distance to scored steps without a user-facing estimate warning
 - Do not treat Strava as a full replacement for manual entry in this challenge
 
+### 9) Garmin Prototype Plan
+
+- Goal: test whether Garmin data can be used to prefill daily challenge data before official Garmin approval is available
+- Treat this as a prototype-only path, not a production integration
+- Keep GitHub Pages as the frontend host and use Apps Script `Code.gs` as the temporary sync service
+
+Desired prototype behavior:
+
+1. Add a Garmin login/connect area in the participant profile
+2. Let a participant connect Garmin from the profile page
+3. Save Garmin auth/session material against that participant on the backend
+4. Sync the participant's Garmin data for the day
+5. Total up daily active minutes from imported Garmin activity data
+6. Pull total daily steps if the Garmin data source makes that available
+7. Mark `WorkoutDone = true` if Garmin activity data shows a qualifying workout
+8. Leave the rest of the daily log editable so the participant can review and correct anything
+
+Proposed prototype data flow:
+
+1. Participant opens profile
+2. Participant clicks `Connect Garmin`
+3. Frontend calls Apps Script backend
+4. Apps Script handles Garmin auth/session flow
+5. Apps Script stores Garmin connection state for that participant
+6. Participant clicks `Sync Garmin` or the app triggers a manual sync
+7. Apps Script fetches that participant's Garmin data for today
+8. Apps Script writes normalized daily values back into the participant's daily log record
+
+Prototype storage approach:
+
+- Lock down the Google Sheet so only the owner/admin can read it directly
+- Do not expose Garmin tokens or session material to the frontend bundle
+- Store Garmin linkage only on the backend side of the app
+- For the prototype, participant records may include Garmin linkage metadata
+- Prefer storing sensitive Garmin auth/session values in Apps Script `PropertiesService` if possible
+- If any Garmin auth/session values must temporarily live in the spreadsheet during prototyping, keep them in a private admin-only area and plan to remove that design later
+
+Prototype import rules:
+
+- Daily active minutes: sum relevant Garmin activity minutes for the participant's local day
+- Daily steps: use Garmin daily total steps if available from the prototype data source
+- Workout flag: set `WorkoutDone = true` when at least one qualifying Garmin workout exists that day
+- Do not silently lock the imported values; participants should still be able to review and edit the log
+- Preserve an import note or source flag so the app can show that the values came from Garmin sync
+
+Recommended UI behavior:
+
+- Show Garmin connection status in the participant profile
+- Show `Connect Garmin`, `Disconnect Garmin`, and `Sync Garmin` actions
+- Show `Last synced` timestamp
+- Show a note that the Garmin integration is an early prototype and imported values should be double-checked
+
+Important prototype warnings:
+
+- The current local Garmin downloader repo uses an unofficial Garmin login flow, not an official public app integration
+- That unofficial approach may break when Garmin changes authentication behavior
+- It may not be appropriate for broad public use even if it works for a small trusted test group
+- Do not present this as production-ready until official Garmin approval is complete
+- Plan to replace the prototype auth/storage flow with the official Garmin program flow if approval is granted
+
+Recommended implementation order:
+
+1. Add README plan and warnings
+2. Add participant Garmin linkage fields in backend schema
+3. Add Apps Script actions for connect, sync, and disconnect
+4. Add participant-profile UI for Garmin connection state
+5. Implement one-user or small trusted-user sync flow first
+6. Normalize Garmin results into daily log fields
+7. Add visible source labels and review messaging in the log UI
+8. Revisit the architecture once official Garmin approval is available
+
+Open design questions:
+
+- Whether Garmin auth/session values can live entirely in `PropertiesService` keyed by participant ID or whether a private sheet-backed mapping is needed
+- Whether the prototype Garmin flow can reliably return daily steps in addition to activity data
+- Whether sync should be manual-only at first or also run on a schedule
+- Whether imported Garmin values should prefill the form only or directly update saved daily log rows
+
 ### Baseline Week
 
 - Week 0 (Apr 27-May 3) is for baseline gathering and habit building
