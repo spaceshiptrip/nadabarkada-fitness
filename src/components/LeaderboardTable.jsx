@@ -1,4 +1,4 @@
-import { Lock, Trophy } from 'lucide-react';
+import { FlaskConical, Trophy } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { getParticipantProfileImage } from '@/lib/participants';
 import { CHALLENGE_CONFIG } from '@/lib/config';
@@ -22,15 +22,16 @@ export default function LeaderboardTable({
       </CardHeader>
       <CardContent>
         <div className="space-y-2">
-          {!challengeActive ? (
-            <div className="flex flex-col items-center gap-3 rounded-2xl border bg-slate-50 py-10 text-center">
-              <Lock className="h-8 w-8 text-slate-300" />
-              <div className="text-base font-semibold text-slate-600">Challenge not active yet</div>
-              <div className="text-sm text-muted-foreground">
-                Standings unlock on <span className="font-semibold text-slate-700">May 4, 2026</span>
+          {!challengeActive && (
+            <div className="mb-3 flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3">
+              <FlaskConical className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-600" />
+              <div className="text-xs text-amber-800">
+                <span className="font-semibold text-amber-900">Pre-competition preview</span> — The leaderboard is live early so everyone can verify their setup and shake out any kinks before game day.
+                Keep logging! Baseline week starts <strong>Apr 27</strong> and competition kicks off <strong>May 4</strong>. 🎯
               </div>
             </div>
-          ) : rows.length === 0 ? (
+          )}
+          {rows.length === 0 ? (
             <div className="py-8 text-center text-sm text-muted-foreground">
               No leaderboard data yet.
             </div>

@@ -7,6 +7,7 @@ export const APP_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwzYpnnda
 
 // Challenge dates
 export const CHALLENGE_CONFIG = {
+  testStartDate: '2026-04-13',      // W-2 test week begins
   baselineStartDate: '2026-04-27',
   challengeStartDate: '2026-05-04',
   challengeEndDate: '2026-05-31',

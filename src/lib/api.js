@@ -37,7 +37,19 @@ const mockParticipants = [
 ];
 
 const mockDailyLogs = [
-  // Week 1 — Jay
+  // W-2 (Apr 13–19) — Jay
+  { date: '2026-04-13', participantId: 'participant-jay', name: 'Jay', activeMinutes: 40, workoutDone: true,  steps: 9800,  mobilityDone: false, notes: 'Test week kickoff' },
+  { date: '2026-04-14', participantId: 'participant-jay', name: 'Jay', activeMinutes: 25, workoutDone: false, steps: 7200,  mobilityDone: true,  notes: '' },
+  { date: '2026-04-15', participantId: 'participant-jay', name: 'Jay', activeMinutes: 55, workoutDone: true,  steps: 11500, mobilityDone: false, notes: 'Morning run' },
+  { date: '2026-04-16', participantId: 'participant-jay', name: 'Jay', activeMinutes: 18, workoutDone: false, steps: 5600,  mobilityDone: false, notes: '' },
+  { date: '2026-04-17', participantId: 'participant-jay', name: 'Jay', activeMinutes: 47, workoutDone: true,  steps: 10100, mobilityDone: true,  notes: 'Bike ride' },
+  // W-2 (Apr 13–19) — Maria
+  { date: '2026-04-13', participantId: 'participant-maria', name: 'Maria', activeMinutes: 30, workoutDone: true,  steps: 8200,  mobilityDone: true,  notes: 'Walk + stretch' },
+  { date: '2026-04-14', participantId: 'participant-maria', name: 'Maria', activeMinutes: 20, workoutDone: false, steps: 6400,  mobilityDone: false, notes: '' },
+  { date: '2026-04-15', participantId: 'participant-maria', name: 'Maria', activeMinutes: 35, workoutDone: true,  steps: 9300,  mobilityDone: true,  notes: '' },
+  { date: '2026-04-16', participantId: 'participant-maria', name: 'Maria', activeMinutes: 12, workoutDone: false, steps: 4900,  mobilityDone: false, notes: 'Rest' },
+  { date: '2026-04-17', participantId: 'participant-maria', name: 'Maria', activeMinutes: 45, workoutDone: true,  steps: 10500, mobilityDone: true,  notes: 'Yoga flow' },
+  // Week 1 (May 4–10) — Jay
   { date: '2026-05-04', participantId: 'participant-jay', name: 'Jay', activeMinutes: 52, workoutDone: true,  steps: 12400, mobilityDone: false, notes: 'Hill run' },
   { date: '2026-05-05', participantId: 'participant-jay', name: 'Jay', activeMinutes: 35, workoutDone: false, steps: 9200,  mobilityDone: true,  notes: '' },
   { date: '2026-05-06', participantId: 'participant-jay', name: 'Jay', activeMinutes: 61, workoutDone: true,  steps: 11000, mobilityDone: true,  notes: 'Long ride' },
@@ -45,7 +57,7 @@ const mockDailyLogs = [
   { date: '2026-05-08', participantId: 'participant-jay', name: 'Jay', activeMinutes: 45, workoutDone: true,  steps: 10200, mobilityDone: false, notes: 'Tempo run' },
   { date: '2026-05-09', participantId: 'participant-jay', name: 'Jay', activeMinutes: 12, workoutDone: false, steps: 4800,  mobilityDone: false, notes: 'Rest day' },
   { date: '2026-05-10', participantId: 'participant-jay', name: 'Jay', activeMinutes: 55, workoutDone: true,  steps: 13100, mobilityDone: true,  notes: '' },
-  // Week 1 — Maria
+  // Week 1 (May 4–10) — Maria
   { date: '2026-05-04', participantId: 'participant-maria', name: 'Maria', activeMinutes: 28, workoutDone: true,  steps: 8600,  mobilityDone: true,  notes: 'Walk + stretch' },
   { date: '2026-05-05', participantId: 'participant-maria', name: 'Maria', activeMinutes: 15, workoutDone: false, steps: 5800,  mobilityDone: false, notes: '' },
   { date: '2026-05-06', participantId: 'participant-maria', name: 'Maria', activeMinutes: 32, workoutDone: true,  steps: 9100,  mobilityDone: true,  notes: '' },
@@ -106,7 +118,9 @@ function normalizeDailyLog(entry) {
         mobilityDone,
       })
     ),
-    challengeWeek: Number(entry?.challengeWeek ?? getChallengeWeek(normalizedDate)),
+    // Always recompute from date — legacy entries stored -1 (old sentinel) which now
+    // collides with W-1 weekNumber. Recomputing ensures correct assignment.
+    challengeWeek: getChallengeWeek(normalizedDate),
   };
 }
 

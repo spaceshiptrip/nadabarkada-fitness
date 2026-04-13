@@ -251,6 +251,12 @@ export default function DailyLogForm({ participant, participantLogs, onSubmit, o
               )}
             </div>
             <label className="flex cursor-pointer items-center justify-center gap-2 text-xs text-slate-500">
+              {!stayLoggedIn && (
+                <span className="inline-flex animate-bounce items-center gap-1 rounded-lg bg-blue-500 px-2 py-0.5 text-[10px] font-semibold text-white">
+                  check this!
+                  <span className="h-0 w-0 border-b-[5px] border-l-[5px] border-t-[5px] border-b-transparent border-t-transparent border-l-blue-500" />
+                </span>
+              )}
               <input
                 type="checkbox"
                 className="h-3.5 w-3.5 rounded border"
