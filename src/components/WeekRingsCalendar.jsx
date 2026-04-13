@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Lock } from 'lucide-react';
+import { FlaskConical } from 'lucide-react';
 import {
   calculateActiveMinutesImprovementBonus,
   calculateConsistencyBonus,
@@ -90,10 +90,17 @@ export default function WeekRingsCalendar({
   description = 'Selected week ranked by points, with daily rings for each participant.',
 }) {
   const weeks = getWeeklyDateRanges();
-  const [selectedWeek, setSelectedWeek] = useState(0);
+  const [selectedWeekIdx, setSelectedWeekIdx] = useState(() => {
+    const today = new Date();
+    let idx = 0;
+    for (let i = 0; i < weeks.length; i++) {
+      if (new Date(`${weeks[i].start}T12:00:00`) <= today) idx = i;
+    }
+    return idx;
+  });
   const [showLegend, setShowLegend] = useState(false);
 
-  const week = weeks[selectedWeek];
+  const week = weeks[selectedWeekIdx];
   const days = Array.from({ length: 7 }, (_, i) => addDays(week.start, i));
 
   const visibleParticipants = participants.length > 0
@@ -102,7 +109,7 @@ export default function WeekRingsCalendar({
 
   const rankedParticipants = visibleParticipants
     .map((participant) => {
-      const standing = getWeeklyStanding(participant, logs, selectedWeek);
+      const standing = getWeeklyStanding(participant, logs, week.weekNumber);
       return {
         ...participant,
         ...standing,
@@ -135,36 +142,34 @@ export default function WeekRingsCalendar({
       </CardHeader>
       <CardContent>
         {!challengeActive && (
-          <div className="mb-4 flex flex-col items-center gap-3 rounded-2xl border bg-slate-50 py-8 text-center">
-            <Lock className="h-8 w-8 text-slate-300" />
-            <div className="text-base font-semibold text-slate-600">Challenge not active yet</div>
-            <div className="text-sm text-muted-foreground">
-              Weekly rings unlock on <span className="font-semibold text-slate-700">May 4, 2026</span>
+          <div className="mb-4 flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3">
+            <FlaskConical className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-600" />
+            <div className="text-xs text-amber-800">
+              <span className="font-semibold text-amber-900">Pre-competition preview</span> — Weekly rings are live early so you can test logging and confirm everything looks right before the competition begins.
+              Baseline week starts <strong>Apr 27</strong>, competition kicks off <strong>May 4</strong>. Keep logging! 🎯
             </div>
           </div>
         )}
-        {challengeActive && logs.length === 0 && (
+        {logs.length === 0 && (
           <div className="mb-4 rounded-2xl border border-blue-200 bg-blue-50 px-4 py-6 text-center">
             <div className="text-2xl mb-1">🏃</div>
             <div className="text-sm font-semibold text-blue-900">No activity logged yet</div>
             <div className="mt-1 text-xs text-blue-700">Rings and standings will appear once participants start logging.</div>
           </div>
         )}
-        {challengeActive && (
-        <>
         {/* Week tabs */}
         <div className="mb-4 flex flex-wrap gap-1">
           {weeks.map((w, i) => (
             <button
               key={w.label}
-              onClick={() => setSelectedWeek(i)}
+              onClick={() => setSelectedWeekIdx(i)}
               className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-                selectedWeek === i
+                selectedWeekIdx === i
                   ? 'bg-primary text-primary-foreground'
                   : 'border bg-white text-slate-600 hover:bg-slate-50'
               }`}
             >
-              {w.label.replace('Week ', 'W').replace('(Baseline)', '0')}
+              {w.label}
             </button>
           ))}
         </div>
@@ -260,8 +265,6 @@ export default function WeekRingsCalendar({
             </tbody>
           </table>
         </div>
-        </>
-        )}
       </CardContent>
     </Card>
   );
@@ -276,19 +279,19 @@ function BonusLed({ active, colorClass }) {
   );
 }
 
-function getWeeklyStanding(participant, logs, selectedWeek) {
+function getWeeklyStanding(participant, logs, weekNumber) {
   const weekLogs = logs.filter(
-    (log) => matchesParticipant(participant, log) && Number(log.challengeWeek) === selectedWeek
+    (log) => matchesParticipant(participant, log) && log.challengeWeek === weekNumber
   );
 
-  if (selectedWeek === 0) {
-    const baselineTotal = weekLogs.reduce((sum, log) => sum + getPointsValue(log), 0);
-
+  // Test weeks (W-2, W-1) and baseline (W0): just daily points, no bonuses
+  if (weekNumber <= 0) {
+    const weeklyTotal = weekLogs.reduce((sum, log) => sum + getPointsValue(log), 0);
     return {
       consistencyBonus: 0,
       improvementBonus: 0,
       personalBestBonus: 0,
-      weeklyTotal: baselineTotal,
+      weeklyTotal,
     };
   }
 
@@ -308,9 +311,9 @@ function getWeeklyStanding(participant, logs, selectedWeek) {
   const improvementBonus = activeMinutesBonus + stepsBonus;
 
   let priorBest = 0;
-  for (let week = 1; week < selectedWeek; week += 1) {
+  for (let w = 1; w < weekNumber; w += 1) {
     const priorWeekLogs = logs.filter(
-      (log) => matchesParticipant(participant, log) && Number(log.challengeWeek) === week
+      (log) => matchesParticipant(participant, log) && log.challengeWeek === w
     );
     if (!priorWeekLogs.length) continue;
 
