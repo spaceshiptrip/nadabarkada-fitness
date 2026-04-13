@@ -27,7 +27,7 @@ export default function Footer() {
             rel="noopener noreferrer"
             className="hover:text-white"
           >
-            SpaceshipTrip | PnB Software 2026
+            SpaceshipTrip | PnB 
           </a>
           <span className="text-blue-400">·</span>
           <a
