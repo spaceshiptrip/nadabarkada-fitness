@@ -23,8 +23,8 @@ import {
   updateParticipant,
   verifyParticipantPin,
 } from '@/lib/api';
-import { DEFAULT_PROFILE_IMAGE, getParticipantProfileImage, mergeParticipantsWithBaselines } from '@/lib/participants';
-import { ADMIN_PHONE_E164, ADMIN_SMS_BODY } from '@/lib/config';
+import { DEFAULT_PROFILE_IMAGE, buildPreCompLeaderboardRows, getParticipantProfileImage, mergeParticipantsWithBaselines } from '@/lib/participants';
+import { ADMIN_PHONE_E164, ADMIN_SMS_BODY, CHALLENGE_CONFIG } from '@/lib/config';
 
 function formatFriendlyDate(isoStr) {
   if (!isoStr) return '';
@@ -97,6 +97,13 @@ export default function App() {
   const derivedParticipants = useMemo(
     () => mergeParticipantsWithBaselines(participants, dailyLogs),
     [participants, dailyLogs]
+  );
+
+  const challengeActive = new Date() >= new Date(CHALLENGE_CONFIG.challengeStartDate + 'T00:00:00');
+
+  const preCompLeaderboard = useMemo(
+    () => buildPreCompLeaderboardRows(derivedParticipants, dailyLogs),
+    [derivedParticipants, dailyLogs]
   );
   const selectedParticipantLogs = useMemo(
     () => dailyLogs.filter((log) => log.participantId === selectedParticipantId),
@@ -597,10 +604,14 @@ export default function App() {
           </div>
           <div className="min-w-0">
             <LeaderboardTable
-              rows={leaderboard}
+              rows={challengeActive ? leaderboard : preCompLeaderboard}
               source={leaderboardSource}
-              title="Challenge leaderboard"
-              description="Ranked by total challenge points."
+              title={challengeActive ? 'Challenge Leaderboard' : 'Pre-Competition Standings'}
+              description={
+                challengeActive
+                  ? 'Ranked by total challenge points including all weekly bonuses.'
+                  : 'Daily points only — resets when the competition begins May 4. No bonuses yet.'
+              }
             />
           </div>
         </div>
