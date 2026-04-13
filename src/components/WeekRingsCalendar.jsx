@@ -26,14 +26,21 @@ function ActivityRings({ log, size = 34 }) {
   const gap = 1;
 
   const hasData = !!log;
-  const points       = hasData ? (log.dailyPoints ?? calculateDailyPoints(log)) : 0;
-  const activeMin    = hasData ? (log.activeMinutes || 0) : 0;
-  const steps        = hasData ? (log.steps || 0) : 0;
+  const points    = hasData ? (log.dailyPoints ?? calculateDailyPoints(log)) : 0;
+  const activeMin = hasData ? (log.activeMinutes || 0) : 0;
+  const steps     = hasData ? (log.steps || 0) : 0;
+
+  // Steps ring: closes at 6k, glows at 8k+
+  const stepsProgress  = Math.min(steps / 6000, 1);
+  const stepsGlow      = hasData && steps >= 8000;
+  // Active minutes ring: closes at 30, glows at 45+
+  const activeProgress = Math.min(activeMin / 30, 1);
+  const activeGlow     = hasData && activeMin >= 45;
 
   const rings = [
-    { r: cx - sw / 2,               color: RING_MOVE,     progress: Math.min(points / 10, 1) },
-    { r: cx - sw / 2 - sw - gap,    color: RING_EXERCISE, progress: Math.min(activeMin / 60, 1) },
-    { r: cx - sw / 2 - (sw + gap) * 2, color: RING_STAND, progress: Math.min(steps / 10000, 1) },
+    { r: cx - sw / 2,                  color: RING_MOVE,     progress: Math.min(points / 10, 1), glow: false },
+    { r: cx - sw / 2 - sw - gap,       color: RING_EXERCISE, progress: activeProgress,            glow: activeGlow },
+    { r: cx - sw / 2 - (sw + gap) * 2, color: RING_STAND,    progress: stepsProgress,             glow: stepsGlow },
   ];
 
   return (
@@ -43,7 +50,16 @@ function ActivityRings({ log, size = 34 }) {
       viewBox={`0 0 ${size} ${size}`}
       style={{ transform: 'rotate(-90deg)' }}
     >
-      {rings.map(({ r, color, progress }) => {
+      <defs>
+        <filter id="ring-glow" x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur stdDeviation="1.5" result="blur" />
+          <feMerge>
+            <feMergeNode in="blur" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+      </defs>
+      {rings.map(({ r, color, progress, glow }) => {
         const circ = 2 * Math.PI * r;
         return (
           <g key={r}>
@@ -57,6 +73,7 @@ function ActivityRings({ log, size = 34 }) {
                 strokeDasharray={circ}
                 strokeDashoffset={circ * (1 - progress)}
                 strokeLinecap="round"
+                filter={glow ? 'url(#ring-glow)' : undefined}
               />
             )}
           </g>
@@ -245,6 +262,10 @@ export default function WeekRingsCalendar({
                   {days.map((date) => {
                     const log = getLog(participant, date);
                     const pts = log ? (log.dailyPoints ?? calculateDailyPoints(log)) : null;
+                    const steps = log?.steps || 0;
+                    const activeMin = log?.activeMinutes || 0;
+                    // Star only when all 3 rings are closed
+                    const allRingsClosed = pts === 10 && activeMin >= 30 && steps >= 6000;
                     return (
                       <td key={date} className="py-2 text-center sm:py-3">
                         <div className="flex flex-col items-center gap-1">
@@ -256,6 +277,9 @@ export default function WeekRingsCalendar({
                           <span className={`text-[10px] tabular-nums font-semibold sm:text-xs ${pts !== null ? 'text-slate-700' : 'text-slate-300'}`}>
                             {pts !== null ? `${pts} pt` : '—'}
                           </span>
+                          {allRingsClosed && (
+                            <span className="text-[11px] leading-none" title="All rings closed!">⭐</span>
+                          )}
                         </div>
                       </td>
                     );

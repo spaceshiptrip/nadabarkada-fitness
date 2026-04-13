@@ -17,20 +17,26 @@ const RING_EXERCISE = '#92E82C';
 const RING_STAND = '#1EEAEF';
 const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
-function SummaryRings({ pointsProgress, activeProgress, stepsProgress, size = 144 }) {
+function SummaryRings({ pointsProgress, activeProgress, stepsProgress, activeGlow = false, stepsGlow = false, size = 144 }) {
   const cx = size / 2;
   const cy = size / 2;
   const sw = 12;
   const gap = 4;
   const rings = [
-    { r: cx - sw / 2, color: RING_MOVE, progress: pointsProgress },
-    { r: cx - sw / 2 - sw - gap, color: RING_EXERCISE, progress: activeProgress },
-    { r: cx - sw / 2 - (sw + gap) * 2, color: RING_STAND, progress: stepsProgress },
+    { r: cx - sw / 2,                  color: RING_MOVE,     progress: pointsProgress, glow: false },
+    { r: cx - sw / 2 - sw - gap,       color: RING_EXERCISE, progress: activeProgress,  glow: activeGlow },
+    { r: cx - sw / 2 - (sw + gap) * 2, color: RING_STAND,    progress: stepsProgress,   glow: stepsGlow },
   ];
 
   return (
     <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ transform: 'rotate(-90deg)' }}>
-      {rings.map(({ r, color, progress }) => {
+      <defs>
+        <filter id="summary-ring-glow" x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur stdDeviation="3" result="blur" />
+          <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+        </filter>
+      </defs>
+      {rings.map(({ r, color, progress, glow }) => {
         const circumference = 2 * Math.PI * r;
         return (
           <g key={r}>
@@ -45,6 +51,7 @@ function SummaryRings({ pointsProgress, activeProgress, stepsProgress, size = 14
               strokeDasharray={circumference}
               strokeDashoffset={circumference * (1 - Math.min(progress, 1))}
               strokeLinecap="round"
+              filter={glow ? 'url(#summary-ring-glow)' : undefined}
             />
           </g>
         );
@@ -75,15 +82,23 @@ function DayRings({ log, size = 34 }) {
   const activeMin = hasData ? Number(log.activeMinutes || 0) : 0;
   const steps = hasData ? Number(log.steps || 0) : 0;
 
+  const activeGlow = hasData && activeMin >= 45;
+  const stepsGlow  = hasData && steps >= 8000;
   const rings = [
-    { r: cx - sw / 2, color: RING_MOVE, progress: Math.min(points / 10, 1) },
-    { r: cx - sw / 2 - sw - gap, color: RING_EXERCISE, progress: Math.min(activeMin / 60, 1) },
-    { r: cx - sw / 2 - (sw + gap) * 2, color: RING_STAND, progress: Math.min(steps / 10000, 1) },
+    { r: cx - sw / 2,                  color: RING_MOVE,     progress: Math.min(points / 10, 1),    glow: false },
+    { r: cx - sw / 2 - sw - gap,       color: RING_EXERCISE, progress: Math.min(activeMin / 30, 1), glow: activeGlow },
+    { r: cx - sw / 2 - (sw + gap) * 2, color: RING_STAND,    progress: Math.min(steps / 6000, 1),   glow: stepsGlow },
   ];
 
   return (
     <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ transform: 'rotate(-90deg)' }}>
-      {rings.map(({ r, color, progress }) => {
+      <defs>
+        <filter id="day-ring-glow" x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur stdDeviation="1.5" result="blur" />
+          <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+        </filter>
+      </defs>
+      {rings.map(({ r, color, progress, glow }) => {
         const circumference = 2 * Math.PI * r;
         return (
           <g key={r}>
@@ -99,6 +114,7 @@ function DayRings({ log, size = 34 }) {
                 strokeDasharray={circumference}
                 strokeDashoffset={circumference * (1 - progress)}
                 strokeLinecap="round"
+                filter={glow ? 'url(#day-ring-glow)' : undefined}
               />
             )}
           </g>
@@ -237,7 +253,9 @@ export default function MyRingsPanel({ participants, logs, selectedParticipantId
               <SummaryRings
                 pointsProgress={summary.pointsProgress}
                 activeProgress={summary.activeProgress}
+                activeGlow={summary.activeGlow}
                 stepsProgress={summary.stepsProgress}
+                stepsGlow={summary.stepsGlow}
                 size={176}
               />
               <div className="mt-3 flex items-center justify-center gap-2">
@@ -254,9 +272,9 @@ export default function MyRingsPanel({ participants, logs, selectedParticipantId
 
             <div className="space-y-4">
               <div className="grid gap-3">
-                <MetricCard label="Points" value={summary.pointsText} color={RING_MOVE} />
-                <MetricCard label="Active mins" value={summary.activeText} color={RING_EXERCISE} />
-                <MetricCard label="Steps" value={summary.stepsText} color={RING_STAND} />
+                <MetricCard label="Points" value={summary.pointsText} color={RING_MOVE} star={summary.pointsStarDay} />
+                <MetricCard label="Active mins" value={summary.activeText} color={RING_EXERCISE} star={summary.activeStarDay} />
+                <MetricCard label="Steps" value={summary.stepsText} color={RING_STAND} star={summary.stepsStarDay} />
               </div>
               {summary.notes && (
                 <div className="rounded-2xl border bg-white p-3">
@@ -448,13 +466,14 @@ function MonthDetail({ summary }) {
   );
 }
 
-function MetricCard({ label, value, color }) {
+function MetricCard({ label, value, color, star = false }) {
   return (
     <div className="rounded-2xl border bg-white p-3">
       <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-slate-500">
         <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: color }} />
         {label}
       </div>
+      {star && <div className="mt-0.5 text-sm leading-none">⭐</div>}
       <div className="mt-2 text-right text-lg font-semibold text-slate-800">{value}</div>
     </div>
   );
@@ -505,10 +524,15 @@ function buildSummary(participant, logs, view, selectedDate) {
       activeText: `${Number(log?.activeMinutes || 0)} min`,
       stepsText: formatNumber(Number(log?.steps || 0)),
       pointsProgress: points / 10,
-      activeProgress: Number(log?.activeMinutes || 0) / 60,
-      stepsProgress: Number(log?.steps || 0) / 10000,
+      activeProgress: Math.min(Number(log?.activeMinutes || 0) / 30, 1),
+      activeGlow: Number(log?.activeMinutes || 0) >= 45,
+      stepsProgress: Math.min(Number(log?.steps || 0) / 6000, 1),
+      stepsGlow: Number(log?.steps || 0) >= 8000,
       workoutBonus: Boolean(log?.workoutDone),
       mobilityBonus: Boolean(log?.mobilityDone),
+      stepsStarDay: Number(log?.steps || 0) >= 10000,
+      activeStarDay: Number(log?.activeMinutes || 0) >= 60,
+      pointsStarDay: points === 10 && Boolean(log?.workoutDone) && Boolean(log?.mobilityDone),
       notes: String(log?.notes || '').trim(),
       consistencyBonus: false,
       improvementBonus: false,
@@ -548,8 +572,10 @@ function buildSummary(participant, logs, view, selectedDate) {
         activeText: `${Math.round(avgActiveMinutes)} avg`,
         stepsText: `${formatNumber(Math.round(avgSteps))} avg`,
         pointsProgress: totalPoints / 70,
-        activeProgress: avgActiveMinutes / 60,
-        stepsProgress: avgSteps / 10000,
+        activeProgress: Math.min(avgActiveMinutes / 30, 1),
+        activeGlow: avgActiveMinutes >= 45,
+        stepsProgress: Math.min(avgSteps / 6000, 1),
+        stepsGlow: avgSteps >= 8000,
         workoutBonus: weekLogs.some((entry) => entry.workoutDone),
         mobilityBonus: weekLogs.some((entry) => entry.mobilityDone),
         consistencyBonus: false,
@@ -599,7 +625,8 @@ function buildSummary(participant, logs, view, selectedDate) {
       stepsText: `${formatNumber(Math.round(avgSteps))} avg`,
       pointsProgress: standing.weeklyTotal / 70,
       activeProgress: avgActiveMinutes / 60,
-      stepsProgress: avgSteps / 10000,
+      stepsProgress: Math.min(avgSteps / 6000, 1),
+      stepsGlow: avgSteps >= 8000,
       workoutBonus: weekLogs.some((entry) => entry.workoutDone),
       mobilityBonus: weekLogs.some((entry) => entry.mobilityDone),
       consistencyBonus: standing.consistencyBonus > 0,
@@ -641,7 +668,8 @@ function buildSummary(participant, logs, view, selectedDate) {
     stepsText: `${formatNumber(Math.round(avgSteps))} avg`,
     pointsProgress: totalMonthPoints / (daysInMonth * 10),
     activeProgress: avgActiveMinutes / 60,
-    stepsProgress: avgSteps / 10000,
+    stepsProgress: Math.min(avgSteps / 6000, 1),
+    stepsGlow: avgSteps >= 8000,
     workoutBonus: monthLogs.some((entry) => entry.workoutDone),
     mobilityBonus: monthLogs.some((entry) => entry.mobilityDone),
     consistencyBonus: weeklyStandings.some((standing) => standing.consistencyBonus > 0),
