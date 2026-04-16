@@ -1,4 +1,5 @@
 import spaceshipLogo from '@/assets/SpaceshipTripLogo.png';
+import vibecodedmonkey from '@/assets/vibecodedmonkey.png';
 
 export default function Footer() {
   return (
@@ -6,7 +7,7 @@ export default function Footer() {
       <div className="mx-auto max-w-7xl rounded-3xl bg-gradient-to-br from-blue-700 to-indigo-900 py-6 shadow-soft">
       <div className="flex flex-col items-center gap-4 px-4">
 
-        {/* Logo + app name */}
+        {/* Logos + app name */}
         <div className="flex items-center gap-3">
           <img
             src={spaceshipLogo}
@@ -17,6 +18,11 @@ export default function Footer() {
             <span className="block text-base font-bold text-white">Move Yo' Azz App</span>
             <span className="text-xs text-blue-300">fitness.nadabarkada.com</span>
           </div>
+          <img
+            src={vibecodedmonkey}
+            alt="VibeCoded Monkey Logo"
+            className="h-12 w-12 flex-shrink-0 rounded-full object-cover"
+          />
         </div>
 
         {/* Links */}

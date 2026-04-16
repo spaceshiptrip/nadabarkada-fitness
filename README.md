@@ -611,6 +611,26 @@ Prototype storage approach:
 - Prefer storing sensitive Garmin auth/session values in Apps Script `PropertiesService` if possible
 - If any Garmin auth/session values must temporarily live in the spreadsheet during prototyping, keep them in a private admin-only area and plan to remove that design later
 
+Garmin token/session storage note:
+
+- The current local Garmin downloader stores two token files in `~/.garminconnect`:
+  - `oauth1_token.json`
+  - `oauth2_token.json`
+- For the prototype, assume both token payloads are required and persist both for each connected participant
+- Treat both token files as opaque backend-managed auth/session blobs rather than trying to reduce them to a single field too early
+- The OAuth2 access token expires and will need to be refreshed or replaced over time
+- The stored Garmin auth/session payload should be overwritten whenever a fresh login or refresh returns updated values
+- If spreadsheet-backed storage is used for the prototype, prefer a separate private sheet such as `GarminAuth` instead of storing raw auth/session values in the main `Participants` sheet
+- A possible private `GarminAuth` sheet shape:
+  - `ParticipantId`
+  - `OAuth1TokenJson`
+  - `OAuth2TokenJson`
+  - `Connected`
+  - `LastSyncedAt`
+  - `AccessTokenExpiresAt`
+  - `RefreshTokenExpiresAt`
+- Do not expose any of those fields through normal participant or leaderboard API responses
+
 Prototype import rules:
 
 - Daily active minutes: sum relevant Garmin activity minutes for the participant's local day
