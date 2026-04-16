@@ -115,16 +115,15 @@ export default function App() {
   );
 
   useEffect(() => {
-    if (!derivedParticipants.length) {
-      setSelectedParticipantId('');
-      setConfirmedParticipantId('');
-      return;
-    }
+    // Don't clear selections while participants are still loading
+    if (!derivedParticipants.length) return;
+
     const hasSelectedParticipant = derivedParticipants.some((participant) => participant.id === selectedParticipantId);
     const hasConfirmedParticipant = derivedParticipants.some((participant) => participant.id === confirmedParticipantId);
 
     if (selectedParticipantId && !hasSelectedParticipant) {
       setSelectedParticipantId('');
+      window.localStorage.removeItem(STAY_LOGGED_IN_KEY);
     }
 
     if (confirmedParticipantId && !hasConfirmedParticipant) {
