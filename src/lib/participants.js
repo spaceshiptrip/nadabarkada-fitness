@@ -39,6 +39,22 @@ export function getParticipantProfileImage(profileImage) {
     if (commaIdx === -1 || commaIdx === cleaned.length - 1) return DEFAULT_PROFILE_IMAGE;
   }
 
+  // Fix URL-encoded SVG data URIs that lack width/height (e.g. old default avatars
+  // stored in Google Sheets before we added explicit dimensions to the SVG element).
+  // Without width/height, browsers can't establish intrinsic size for <img>.
+  if (/^data:image\/svg\+xml;charset=utf-8,/i.test(cleaned)) {
+    try {
+      const commaIdx = cleaned.indexOf(',');
+      const decoded = decodeURIComponent(cleaned.slice(commaIdx + 1));
+      if (!/<svg[^>]*\bwidth=/i.test(decoded)) {
+        const fixed = decoded.replace(/<svg\b/, '<svg width="96" height="96"');
+        return 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(fixed);
+      }
+    } catch {
+      // decodeURIComponent can throw on malformed encoding — fall through
+    }
+  }
+
   return cleaned;
 }
 
