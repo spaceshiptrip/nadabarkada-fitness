@@ -8,7 +8,7 @@ import {
 } from '@/lib/points';
 
 const DEFAULT_AVATAR_SVG = `
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" fill="none">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" width="96" height="96" fill="none">
   <defs>
     <linearGradient id="avatarGradient" x1="12" y1="8" x2="84" y2="88" gradientUnits="userSpaceOnUse">
       <stop stop-color="#D8EAFE"/>
@@ -24,7 +24,22 @@ const DEFAULT_AVATAR_SVG = `
 export const DEFAULT_PROFILE_IMAGE = `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(DEFAULT_AVATAR_SVG)}`;
 
 export function getParticipantProfileImage(profileImage) {
-  return profileImage && String(profileImage).trim() ? profileImage : DEFAULT_PROFILE_IMAGE;
+  if (!profileImage) return DEFAULT_PROFILE_IMAGE;
+
+  // Google Sheets can inject newlines/whitespace into long cell values — strip them
+  const cleaned = String(profileImage).replace(/\s+/g, '');
+  if (!cleaned) return DEFAULT_PROFILE_IMAGE;
+
+  // Must be a data URI or a real URL to be renderable
+  if (!cleaned.startsWith('data:') && !cleaned.startsWith('http')) return DEFAULT_PROFILE_IMAGE;
+
+  // Reject obviously truncated data URIs (base64 section must be non-empty)
+  if (cleaned.startsWith('data:')) {
+    const commaIdx = cleaned.indexOf(',');
+    if (commaIdx === -1 || commaIdx === cleaned.length - 1) return DEFAULT_PROFILE_IMAGE;
+  }
+
+  return cleaned;
 }
 
 export function normalizeParticipant(participant) {
