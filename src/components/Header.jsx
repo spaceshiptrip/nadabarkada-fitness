@@ -56,8 +56,8 @@ export default function Header() {
     return () => clearInterval(id);
   }, []);
 
-  const challengeTime = getTimeLeft(CHALLENGE_CONFIG.challengeStartDate);
   const baselineTime = getTimeLeft(CHALLENGE_CONFIG.baselineStartDate);
+  const scoringTime = getTimeLeft(CHALLENGE_CONFIG.challengeStartDate);
 
   return (
     <header className="mb-8 rounded-3xl border bg-gradient-to-br from-blue-600 to-indigo-700 p-6 text-white shadow-soft md:p-8">
@@ -68,16 +68,16 @@ export default function Header() {
 
       <div className="flex flex-col items-center gap-6 sm:flex-row sm:items-end sm:justify-around">
         <CountdownBlock
-          label={`Until challenge start · ${friendlyDate(CHALLENGE_CONFIG.challengeStartDate)}`}
-          time={challengeTime}
+          label={`Until baseline week · ${friendlyDate(CHALLENGE_CONFIG.baselineStartDate)}`}
+          time={baselineTime}
           large
         />
 
         <div className="h-px w-full bg-white/20 sm:h-12 sm:w-px" />
 
         <CountdownBlock
-          label={`Until baseline start · ${friendlyDate(CHALLENGE_CONFIG.baselineStartDate)}`}
-          time={baselineTime}
+          label={`Until scoring starts · ${friendlyDate(CHALLENGE_CONFIG.challengeStartDate)}`}
+          time={scoringTime}
           large={false}
         />
       </div>

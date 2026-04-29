@@ -234,7 +234,7 @@ function weeklyStanding(participant, logs, weekNumber) {
       consistencyBonus: 0,
       improvementBonus: 0,
       personalBestBonus: 0,
-      weeklyTotal: weekLogs.reduce((s, l) => s + l.dailyPoints, 0),
+      weeklyTotal: weekNumber === 0 ? 0 : weekLogs.reduce((s, l) => s + l.dailyPoints, 0),
     };
   }
 
@@ -326,11 +326,12 @@ describe('weekly standing — test/baseline weeks (no bonuses)', () => {
     expect(result.improvementBonus).toBe(0);
   });
 
-  it('W0 baseline: no bonuses', () => {
+  it('W0 baseline: no bonuses and no scored points', () => {
     const baselineLogs = [makeLog('2026-04-27', 0, { activeMinutes: 40, steps: 8000 })];
     const result = weeklyStanding(participant, baselineLogs, 0);
     expect(result.consistencyBonus).toBe(0);
     expect(result.improvementBonus).toBe(0);
+    expect(result.weeklyTotal).toBe(0);
   });
 });
 

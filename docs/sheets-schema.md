@@ -27,7 +27,7 @@ Date | ParticipantId | Name | ActiveMinutes | WorkoutDone | Steps | MobilityDone
 - `Date` should be in `YYYY-MM-DD`
 - `ParticipantId` should reference `Participants.UserId`
 - `WorkoutDone` and `MobilityDone` can be `TRUE/FALSE`
-- `DailyPoints` is computed server-side when the row is submitted
+- `DailyPoints` is computed server-side when the row is submitted. Week 0 baseline rows are stored as `0` because baseline week is tracked but not scored.
 - `ChallengeWeek` is derived from the date
 
 ## Week mapping
@@ -40,7 +40,7 @@ Date | ParticipantId | Name | ActiveMinutes | WorkoutDone | Steps | MobilityDone
 
 ## Leaderboard logic
 Total score =
-- sum of daily points
+- sum of daily points from Weeks 1-4 only
 - plus weekly consistency bonus
 - plus weekly improvement bonus
 - plus personal best bonus

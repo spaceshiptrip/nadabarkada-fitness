@@ -23,7 +23,13 @@ import {
   updateParticipant,
   verifyParticipantPin,
 } from '@/lib/api';
-import { DEFAULT_PROFILE_IMAGE, buildPreCompLeaderboardRows, getParticipantProfileImage, mergeParticipantsWithBaselines } from '@/lib/participants';
+import {
+  DEFAULT_PROFILE_IMAGE,
+  buildLeaderboardRows,
+  buildPreCompLeaderboardRows,
+  getParticipantProfileImage,
+  mergeParticipantsWithBaselines,
+} from '@/lib/participants';
 import { ADMIN_PHONE_E164, ADMIN_SMS_BODY, CHALLENGE_CONFIG } from '@/lib/config';
 
 function formatFriendlyDate(isoStr) {
@@ -99,10 +105,15 @@ export default function App() {
     [participants, dailyLogs]
   );
 
+  const baselineActive = new Date() >= new Date(CHALLENGE_CONFIG.baselineStartDate + 'T00:00:00');
   const challengeActive = new Date() >= new Date(CHALLENGE_CONFIG.challengeStartDate + 'T00:00:00');
 
   const preCompLeaderboard = useMemo(
     () => buildPreCompLeaderboardRows(derivedParticipants, dailyLogs),
+    [derivedParticipants, dailyLogs]
+  );
+  const challengeLeaderboard = useMemo(
+    () => buildLeaderboardRows(derivedParticipants, dailyLogs),
     [derivedParticipants, dailyLogs]
   );
   const selectedParticipantLogs = useMemo(
@@ -618,13 +629,15 @@ export default function App() {
           </div>
           <div className="min-w-0">
             <LeaderboardTable
-              rows={challengeActive ? leaderboard : preCompLeaderboard}
+              rows={baselineActive ? challengeLeaderboard : preCompLeaderboard}
               source={leaderboardSource}
-              title={challengeActive ? 'Challenge Leaderboard' : 'Pre-Competition Standings'}
+              title={baselineActive ? 'Challenge Leaderboard' : 'Pre-Competition Standings'}
               description={
                 challengeActive
                   ? 'Ranked by total challenge points including all weekly bonuses.'
-                  : 'Daily points only — resets when the competition begins May 4. No bonuses yet.'
+                  : baselineActive
+                  ? 'Official leaderboard remains at 0 during baseline week. Motivation points do not carry over; scoring starts May 4.'
+                  : 'Daily points only — resets when baseline week begins Apr 27. No bonuses yet.'
               }
             />
           </div>

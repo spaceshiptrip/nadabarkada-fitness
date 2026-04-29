@@ -3,7 +3,9 @@ import { calculateDailyPoints, getChallengeWeek } from './points.js';
 import {
   getParticipantBaselineMetrics,
   mergeParticipantsWithBaselines,
+  buildPreCompLeaderboardRows,
   buildLeaderboardRows,
+  buildWeeklySummaryRows,
 } from './participants.js';
 
 // ---------------------------------------------------------------------------
@@ -125,19 +127,20 @@ describe('mergeParticipantsWithBaselines', () => {
 });
 
 // ---------------------------------------------------------------------------
-// buildLeaderboardRows — only W1+ logs count toward total points
+// buildLeaderboardRows — only competition weeks count toward totals
 // ---------------------------------------------------------------------------
 
-describe('buildLeaderboardRows — W-2 and W-1 logs excluded from totals', () => {
-  it('does not count W-2 or W-1 logs in the leaderboard total', () => {
+describe('buildLeaderboardRows — W-2, W-1, and W0 logs excluded from totals', () => {
+  it('does not count W-2, W-1, or W0 logs in the leaderboard total', () => {
     const logs = [
       makeLog('2026-04-13', { activeMinutes: 60, workoutDone: true, steps: 10000, mobilityDone: true }), // W-2, 10 pts — excluded
       makeLog('2026-04-20', { activeMinutes: 60, workoutDone: true, steps: 10000, mobilityDone: true }), // W-1, 10 pts — excluded
+      makeLog('2026-04-27', { activeMinutes: 60, workoutDone: true, steps: 10000, mobilityDone: true }), // W0, baseline — excluded
       makeLog('2026-05-04', { activeMinutes: 30, workoutDone: false, steps: 6000 }), // W1, 4 daily pts
     ];
     const [row] = buildLeaderboardRows([participant], logs);
     // W1: 4 daily pts + 2 personal best (first competition week, subtotal > 0) = 6
-    // W-2 and W-1 pts are NOT included
+    // W-2, W-1, and W0 pts are NOT included
     expect(row.totalPoints).toBe(6);
   });
 
@@ -147,17 +150,48 @@ describe('buildLeaderboardRows — W-2 and W-1 logs excluded from totals', () =>
       makeLog('2026-05-04', { activeMinutes: 30, steps: 6000 }), // W1, 4 daily pts
     ];
     const [row] = buildLeaderboardRows([participant], logs);
-    // W1: 4 daily pts + 2 personal best = 6; W0 pts not counted
+    // W1: 4 daily pts + 2 personal best = 6.
     expect(row.totalPoints).toBe(6);
   });
 
-  it('returns 0 total if only test-week logs exist', () => {
+  it('returns 0 total if only test-week or baseline logs exist', () => {
     const logs = [
       makeLog('2026-04-13', { activeMinutes: 60, workoutDone: true, steps: 10000 }),
       makeLog('2026-04-14', { activeMinutes: 60, workoutDone: true, steps: 10000 }),
+      makeLog('2026-04-27', { activeMinutes: 60, workoutDone: true, steps: 10000 }),
     ];
     const [row] = buildLeaderboardRows([participant], logs);
     expect(row.totalPoints).toBe(0);
+  });
+
+  it('does not let legacy nonzero W0 daily points affect leaderboard or weekly summary', () => {
+    const logs = [
+      makeLog('2026-04-27', { activeMinutes: 60, workoutDone: true, steps: 10000, mobilityDone: true }),
+      makeLog('2026-04-28', { activeMinutes: 45, workoutDone: true, steps: 9000, mobilityDone: true }),
+    ];
+
+    expect(logs.every((log) => log.challengeWeek === 0 && log.dailyPoints > 0)).toBe(true);
+
+    const [leaderboardRow] = buildLeaderboardRows([participant], logs);
+    expect(leaderboardRow.totalPoints).toBe(0);
+
+    const [summaryRow] = buildWeeklySummaryRows([participant], logs);
+    expect(summaryRow.week).toBe(0);
+    expect(summaryRow.dailyPointsTotal).toBe(0);
+    expect(summaryRow.weeklyTotal).toBe(0);
+    expect(summaryRow.consistencyBonus).toBe(0);
+    expect(summaryRow.improvementBonus).toBe(0);
+    expect(summaryRow.personalBestBonus).toBe(0);
+  });
+
+  it('keeps W0 logs out of pre-competition preview standings', () => {
+    const logs = [
+      makeLog('2026-04-13', { activeMinutes: 20, steps: 6000 }), // W-2 preview, 3 pts
+      makeLog('2026-04-27', { activeMinutes: 60, workoutDone: true, steps: 10000, mobilityDone: true }), // W0, 10 pts excluded
+    ];
+
+    const [row] = buildPreCompLeaderboardRows([participant], logs);
+    expect(row.totalPoints).toBe(3);
   });
 
   it('counts all W1–W4 daily points in the total', () => {

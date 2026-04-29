@@ -131,8 +131,8 @@ function addDailyLog_(payload) {
     notes: payload.notes || '',
   };
 
-  const dailyPoints = calculateDailyPoints_(entry);
   const challengeWeek = getChallengeWeek_(entry.date);
+  const dailyPoints = challengeWeek >= 1 ? calculateDailyPoints_(entry) : 0;
 
   const row = [
     String(entry.date),
@@ -237,16 +237,29 @@ function getWeeklySummary_() {
   const participants = getParticipants_();
   const logs = getDailyLogs_();
   const results = [];
-  const scoringWeeks = getScoringWeekNumbers_();
+  const summaryWeeks = [0].concat(getScoringWeekNumbers_());
 
   participants.forEach(function(participant) {
     const baseline = getParticipantBaseline_(participant, logs);
     const personLogs = logs.filter(function(log) { return matchesParticipant_(participant, log); });
     let priorBest = 0;
 
-    scoringWeeks.forEach(function(week) {
+    summaryWeeks.forEach(function(week) {
       const weekLogs = personLogs.filter(function(log) { return number_(log.challengeWeek) === week; });
       if (!weekLogs.length) return;
+
+      if (week === 0) {
+        results.push({
+          name: participant.name,
+          week: week,
+          dailyPointsTotal: 0,
+          consistencyBonus: 0,
+          improvementBonus: 0,
+          personalBestBonus: 0,
+          weeklyTotal: 0,
+        });
+        return;
+      }
 
       const dailyPointsTotal = sum_(weekLogs.map(function(log) { return number_(log.dailyPoints); }));
       const activeDays = weekLogs.filter(function(log) {

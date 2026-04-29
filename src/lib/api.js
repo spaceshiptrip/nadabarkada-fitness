@@ -68,10 +68,11 @@ const mockDailyLogs = [
 ];
 
 function withComputedDailyPoints(entry) {
+  const challengeWeek = getChallengeWeek(entry.date);
   return {
     ...entry,
-    challengeWeek: getChallengeWeek(entry.date),
-    dailyPoints: calculateDailyPoints(entry),
+    challengeWeek,
+    dailyPoints: Number(challengeWeek) >= 1 ? calculateDailyPoints(entry) : 0,
   };
 }
 
@@ -99,6 +100,8 @@ function normalizeDailyLog(entry) {
   const activeMinutes = Number(entry?.activeMinutes || 0);
   const steps = Number(entry?.steps || 0);
 
+  const challengeWeek = getChallengeWeek(normalizedDate);
+
   return {
     ...entry,
     date: normalizedDate,
@@ -109,18 +112,21 @@ function normalizeDailyLog(entry) {
     steps,
     mobilityDone,
     notes: String(entry?.notes || ''),
-    dailyPoints: Number(
-      entry?.dailyPoints ??
-      calculateDailyPoints({
-        activeMinutes,
-        workoutDone,
-        steps,
-        mobilityDone,
-      })
-    ),
     // Always recompute from date — legacy entries stored -1 (old sentinel) which now
     // collides with W-1 weekNumber. Recomputing ensures correct assignment.
-    challengeWeek: getChallengeWeek(normalizedDate),
+    challengeWeek,
+    dailyPoints:
+      Number(challengeWeek) >= 1
+        ? Number(
+            entry?.dailyPoints ??
+            calculateDailyPoints({
+              activeMinutes,
+              workoutDone,
+              steps,
+              mobilityDone,
+            })
+          )
+        : 0,
   };
 }
 

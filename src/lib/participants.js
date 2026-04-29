@@ -134,9 +134,8 @@ export function mergeParticipantsWithBaselines(participants, logs) {
   });
 }
 
-// Pre-competition leaderboard: sums daily points across test weeks (W-2, W-1) and
-// baseline week (W0). No bonuses — just raw daily points so people can verify their
-// data is flowing in. Resets automatically once real competition begins.
+// Pre-competition leaderboard: sums daily points across test weeks (W-2, W-1).
+// Baseline week (W0) is tracked for baseline averages but is not scored.
 export function buildPreCompLeaderboardRows(participants, logs) {
   return participants
     .map((participant) => {
@@ -144,7 +143,7 @@ export function buildPreCompLeaderboardRows(participants, logs) {
         (log) =>
           matchesParticipant(participant, log) &&
           log.challengeWeek !== null &&
-          log.challengeWeek <= 0
+          log.challengeWeek < 0
       );
       const totalPoints = preCompLogs.reduce((sum, log) => sum + Number(log.dailyPoints || 0), 0);
       return {
@@ -185,14 +184,28 @@ export function buildLeaderboardRows(participants, logs) {
 export function buildWeeklySummaryRows(participants, logs) {
   const participantsWithBaselines = mergeParticipantsWithBaselines(participants, logs);
   const results = [];
+  const summaryWeeks = [0, ...getScoringWeekNumbers()];
 
   participantsWithBaselines.forEach((participant) => {
     const personLogs = logs.filter((log) => matchesParticipant(participant, log));
     let priorBest = 0;
 
-    getScoringWeekNumbers().forEach((week) => {
+    summaryWeeks.forEach((week) => {
       const weekLogs = personLogs.filter((log) => Number(log.challengeWeek) === week);
       if (!weekLogs.length) return;
+
+      if (week === 0) {
+        results.push({
+          name: participant.name,
+          week,
+          dailyPointsTotal: 0,
+          consistencyBonus: 0,
+          improvementBonus: 0,
+          personalBestBonus: 0,
+          weeklyTotal: 0,
+        });
+        return;
+      }
 
       const dailyPointsTotal = weekLogs.reduce((sum, log) => sum + Number(log.dailyPoints || 0), 0);
       const activeDays = weekLogs.filter((log) => isActiveDay(log)).length;

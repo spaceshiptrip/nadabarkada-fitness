@@ -12,7 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { getParticipantKey, getParticipantProfileImage, matchesParticipant } from '@/lib/participants';
 import { CHALLENGE_CONFIG } from '@/lib/config';
 
-const challengeActive = new Date() >= new Date(CHALLENGE_CONFIG.challengeStartDate + 'T00:00:00');
+const challengeActive = new Date() >= new Date(CHALLENGE_CONFIG.baselineStartDate + 'T00:00:00');
 
 // Apple Watch ring colors
 const RING_MOVE     = '#FA3E57'; // red   — daily points (main ring)
@@ -26,7 +26,7 @@ function ActivityRings({ log, size = 34 }) {
   const gap = 1;
 
   const hasData = !!log;
-  const points    = hasData ? (log.dailyPoints ?? calculateDailyPoints(log)) : 0;
+  const points    = hasData ? (Number(log.challengeWeek) === 0 ? calculateDailyPoints(log) : getPointsValue(log)) : 0;
   const activeMin = hasData ? (log.activeMinutes || 0) : 0;
   const steps     = hasData ? (log.steps || 0) : 0;
 
@@ -100,6 +100,10 @@ function getPointsValue(log) {
   return Number(log?.dailyPoints ?? calculateDailyPoints(log) ?? 0);
 }
 
+function getMotivationPointsValue(log) {
+  return log ? calculateDailyPoints(log) : 0;
+}
+
 export default function WeekRingsCalendar({
   logs,
   participants,
@@ -118,6 +122,7 @@ export default function WeekRingsCalendar({
   const [showLegend, setShowLegend] = useState(false);
 
   const week = weeks[selectedWeekIdx];
+  const isBaselineWeek = week.weekNumber === 0;
   const days = Array.from({ length: 7 }, (_, i) => addDays(week.start, i));
 
   const visibleParticipants = participants.length > 0
@@ -152,7 +157,9 @@ export default function WeekRingsCalendar({
         </CardDescription>
         {topParticipant && (
           <div className="mt-2 rounded-2xl border bg-slate-50 px-3 py-2 text-sm text-slate-700">
-            <span className="font-semibold">{weekEnded ? 'Week winner:' : 'Currently leading:'}</span>{' '}
+            <span className="font-semibold">
+              {isBaselineWeek ? 'Motivation leader:' : weekEnded ? 'Week winner:' : 'Currently leading:'}
+            </span>{' '}
             {topParticipant.name} with {topParticipant.weeklyTotal} pts
           </div>
         )}
@@ -162,8 +169,8 @@ export default function WeekRingsCalendar({
           <div className="mb-4 flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3">
             <FlaskConical className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-600" />
             <div className="text-xs text-amber-800">
-              <span className="font-semibold text-amber-900">Pre-competition preview</span> — Weekly rings are live early so you can test logging and confirm everything looks right before the competition begins.
-              Baseline week starts <strong>Apr 27</strong>, competition kicks off <strong>May 4</strong>. Keep logging! 🎯
+              <span className="font-semibold text-amber-900">Pre-competition preview</span> — Weekly rings are live early so you can test logging and confirm everything looks right before scores begin counting.
+              Baseline week starts <strong>Apr 27</strong>. Points begin counting on <strong>May 4</strong>.
             </div>
           </div>
         )}
@@ -172,6 +179,14 @@ export default function WeekRingsCalendar({
             <div className="text-2xl mb-1">🏃</div>
             <div className="text-sm font-semibold text-blue-900">No activity logged yet</div>
             <div className="mt-1 text-xs text-blue-700">Rings and standings will appear once participants start logging.</div>
+          </div>
+        )}
+        {isBaselineWeek && (
+          <div className="mb-4 rounded-2xl border-2 border-amber-300 bg-amber-50 px-4 py-4 text-sm text-amber-900 shadow-sm">
+            <div className="font-bold uppercase tracking-wide">Week 0 points are motivation only</div>
+            <div className="mt-1 leading-6">
+              These rings recognize the work people are doing during baseline week. They set personal averages and help everyone build the habit, but they do not count toward the official leaderboard. Scoring starts May 4.
+            </div>
           </div>
         )}
         {/* Week tabs */}
@@ -261,7 +276,9 @@ export default function WeekRingsCalendar({
                   </td>
                   {days.map((date) => {
                     const log = getLog(participant, date);
-                    const pts = log ? (log.dailyPoints ?? calculateDailyPoints(log)) : null;
+                    const pts = log
+                      ? (isBaselineWeek ? getMotivationPointsValue(log) : getPointsValue(log))
+                      : null;
                     const steps = log?.steps || 0;
                     const activeMin = log?.activeMinutes || 0;
                     // Star only when all 3 rings are closed
@@ -308,9 +325,12 @@ function getWeeklyStanding(participant, logs, weekNumber) {
     (log) => matchesParticipant(participant, log) && log.challengeWeek === weekNumber
   );
 
-  // Test weeks (W-2, W-1) and baseline (W0): just daily points, no bonuses
+  // Test and baseline weeks are visible for motivation only. Official leaderboard
+  // scoring is handled separately and starts at W1.
   if (weekNumber <= 0) {
-    const weeklyTotal = weekLogs.reduce((sum, log) => sum + getPointsValue(log), 0);
+    const weeklyTotal = weekLogs.reduce((sum, log) => {
+      return sum + (weekNumber === 0 ? getMotivationPointsValue(log) : getPointsValue(log));
+    }, 0);
     return {
       consistencyBonus: 0,
       improvementBonus: 0,

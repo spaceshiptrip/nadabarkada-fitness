@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { ChevronDown, ChevronUp, ClipboardCheck, Info, KeyRound, LogOut, MessageSquare, Trash2 } from 'lucide-react';
 import {
   calculateActivityPoints,
+  calculateDailyPoints,
   calculateWorkoutPoints,
   calculateStepsPoints,
   calculateMobilityPoints,
@@ -443,7 +444,12 @@ export default function DailyLogForm({ participant, participantLogs, onSubmit, o
                   <div className="flex justify-between"><span>Steps</span><span className="font-semibold">{(existingEntry.steps ?? 0).toLocaleString()}</span></div>
                   <div className="flex justify-between"><span>Workout session</span><span className="font-semibold">{existingEntry.workoutDone ? '✓ Yes' : 'No'}</span></div>
                   <div className="flex justify-between"><span>Self-Care</span><span className="font-semibold">{existingEntry.mobilityDone ? '✓ Yes' : 'No'}</span></div>
-                  <div className="flex justify-between border-t pt-1 mt-1"><span className="font-semibold">Daily points</span><span className="font-bold text-primary">{existingEntry.dailyPoints ?? '—'} pts</span></div>
+                  <div className="flex justify-between border-t pt-1 mt-1">
+                    <span className="font-semibold">{challengeWeek === 0 ? 'Motivation points' : 'Daily points'}</span>
+                    <span className="font-bold text-primary">
+                      {challengeWeek === 0 ? calculateDailyPoints(existingEntry) : existingEntry.dailyPoints ?? '—'} pts
+                    </span>
+                  </div>
                   {existingEntry.notes && <div className="pt-1 text-xs text-slate-500 italic">"{existingEntry.notes}"</div>}
                 </div>
 
@@ -480,7 +486,7 @@ export default function DailyLogForm({ participant, participantLogs, onSubmit, o
           <div className="space-y-4 rounded-2xl border bg-white p-4">
             <div>
               <div className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-                Score preview
+                {challengeWeek === 0 ? 'Motivation points (baseline only)' : 'Score preview'}
               </div>
               <div className="mt-1 flex items-baseline gap-1.5">
                 <span className="text-5xl font-bold tabular-nums text-primary">
@@ -488,7 +494,12 @@ export default function DailyLogForm({ participant, participantLogs, onSubmit, o
                 </span>
                 <span className="text-sm text-muted-foreground">/ 10 pts</span>
               </div>
-              {breakdown.total === 10 && (
+              {challengeWeek === 0 && (
+                <div className="mt-1 rounded-lg border border-amber-200 bg-amber-50 px-2 py-1.5 text-xs font-medium text-amber-800">
+                  Baseline week points are for motivation only. Official scoring starts May 4.
+                </div>
+              )}
+              {challengeWeek !== 0 && breakdown.total === 10 && (
                 <div className="mt-1 text-xs font-medium text-accent">Daily cap reached</div>
               )}
             </div>

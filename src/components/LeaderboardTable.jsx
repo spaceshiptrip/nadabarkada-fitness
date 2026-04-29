@@ -3,7 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { getParticipantProfileImage } from '@/lib/participants';
 import { CHALLENGE_CONFIG } from '@/lib/config';
 
-const challengeActive = new Date() >= new Date(CHALLENGE_CONFIG.challengeStartDate + 'T00:00:00');
+const baselineActive = new Date() >= new Date(CHALLENGE_CONFIG.baselineStartDate + 'T00:00:00');
+const scoringActive = new Date() >= new Date(CHALLENGE_CONFIG.challengeStartDate + 'T00:00:00');
 
 export default function LeaderboardTable({
   rows,
@@ -22,12 +23,21 @@ export default function LeaderboardTable({
       </CardHeader>
       <CardContent>
         <div className="space-y-2">
-          {!challengeActive && (
+          {!baselineActive && (
             <div className="mb-3 flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3">
               <FlaskConical className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-600" />
               <div className="text-xs text-amber-800">
-                <span className="font-semibold text-amber-900">Pre-competition preview</span> — The leaderboard is live early so everyone can verify their setup and shake out any kinks before game day.
-                Keep logging! Baseline week starts <strong>Apr 27</strong> and competition kicks off <strong>May 4</strong>. 🎯
+                <span className="font-semibold text-amber-900">Pre-competition preview</span> — The leaderboard is live early so everyone can verify their setup and shake out any kinks before live scoring starts.
+                Keep logging! Scores reset for baseline week on <strong>Apr 27</strong> and begin counting on <strong>May 4</strong>.
+              </div>
+            </div>
+          )}
+          {baselineActive && !scoringActive && (
+            <div className="mb-3 rounded-2xl border-2 border-amber-300 bg-amber-50 px-4 py-4 text-sm text-amber-900 shadow-sm">
+              <div className="font-bold uppercase tracking-wide">Baseline week: official leaderboard is paused</div>
+              <div className="mt-1 leading-6">
+                Motivation points may appear in rings and daily previews this week, but they do not count toward the challenge total.
+                Official scoring starts May 4.
               </div>
             </div>
           )}

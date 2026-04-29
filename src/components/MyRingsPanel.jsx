@@ -17,6 +17,18 @@ const RING_EXERCISE = '#92E82C';
 const RING_STAND = '#1EEAEF';
 const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
+function getPointsValue(log) {
+  return Number(log?.dailyPoints ?? calculateDailyPoints(log) ?? 0);
+}
+
+function getMotivationPointsValue(log) {
+  return log ? calculateDailyPoints(log) : 0;
+}
+
+function getDisplayPointsValue(log) {
+  return Number(log?.challengeWeek) === 0 ? getMotivationPointsValue(log) : getPointsValue(log);
+}
+
 function SummaryRings({ pointsProgress, activeProgress, stepsProgress, activeGlow = false, stepsGlow = false, size = 144 }) {
   const cx = size / 2;
   const cy = size / 2;
@@ -78,7 +90,7 @@ function DayRings({ log, size = 34 }) {
   const sw = size < 44 ? 4 : 5;
   const gap = 1;
   const hasData = !!log;
-  const points = hasData ? Number(log.dailyPoints ?? calculateDailyPoints(log)) : 0;
+  const points = hasData ? getDisplayPointsValue(log) : 0;
   const activeMin = hasData ? Number(log.activeMinutes || 0) : 0;
   const steps = hasData ? Number(log.steps || 0) : 0;
 
@@ -188,11 +200,15 @@ export default function MyRingsPanel({ participants, logs, selectedParticipantId
             <div className="mt-1 text-xs text-blue-700">Log your first day below to see your rings fill up!</div>
           </div>
         )}
-        {summary.isPreCompetition && (
-          <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-            <div className="font-semibold">Pre-competition updates</div>
+        {(summary.isPreCompetition || summary.isBaselineWeek) && (
+          <div className="rounded-2xl border-2 border-amber-300 bg-amber-50 px-4 py-4 text-sm text-amber-900 shadow-sm">
+            <div className="font-bold uppercase tracking-wide">
+              {summary.isBaselineWeek ? 'Baseline week: motivation points only' : 'Pre-competition updates'}
+            </div>
             <div className="mt-1">
-              Great job and keep it going. These entries help everyone get used to logging, but they do not officially count yet.
+              {summary.isBaselineWeek
+                ? 'These points recognize your work this week, but they do not count toward the official leaderboard. Scoring starts May 4.'
+                : 'Great job and keep it going. These entries help everyone get used to logging, but they do not officially count yet.'}
             </div>
           </div>
         )}
@@ -515,9 +531,10 @@ function buildSummary(participant, logs, view, selectedDate) {
   if (view === 'day') {
     const displayDate = (selectedDate && String(selectedDate).slice(0, 10)) || todayIso;
     const log = getLogForDate(participantLogs, displayDate);
-    const points = log ? Number(log.dailyPoints ?? calculateDailyPoints(log)) : 0;
+    const points = log ? getDisplayPointsValue(log) : 0;
     return {
       isPreCompetition,
+      isBaselineWeek: getChallengeWeek(displayDate) === 0,
       periodLabel: formatDateLabel(displayDate),
       totalPoints: points,
       pointsText: `${points} / 10`,
@@ -550,13 +567,13 @@ function buildSummary(participant, logs, view, selectedDate) {
           date,
           shortDate: shortDate(date),
           log,
-          points: log ? Number(log.dailyPoints ?? calculateDailyPoints(log)) : 0,
+          points: log ? getDisplayPointsValue(log) : 0,
           workoutBonus: Boolean(log?.workoutDone),
           mobilityBonus: Boolean(log?.mobilityDone),
         };
       });
       const weekLogs = participantLogs.filter((entry) => isDateInRange(entry.date, calendarWeek.start, calendarWeek.end));
-      const totalPoints = weekLogs.reduce((sum, entry) => sum + Number(entry.dailyPoints ?? calculateDailyPoints(entry)), 0);
+      const totalPoints = weekLogs.reduce((sum, entry) => sum + getDisplayPointsValue(entry), 0);
       const avgActiveMinutes = weekLogs.length
         ? weekLogs.reduce((sum, entry) => sum + Number(entry.activeMinutes || 0), 0) / weekLogs.length
         : 0;
@@ -566,6 +583,7 @@ function buildSummary(participant, logs, view, selectedDate) {
 
       return {
         isPreCompetition: true,
+        isBaselineWeek: false,
         periodLabel: 'Pre-competition week',
         totalPoints,
         pointsText: `${totalPoints} pts`,
@@ -591,7 +609,7 @@ function buildSummary(participant, logs, view, selectedDate) {
       };
     }
 
-    const currentWeekRange = getWeeklyDateRanges()[Math.max(currentWeek, 0)];
+    const currentWeekRange = getWeeklyDateRanges().find((range) => range.weekNumber === currentWeek);
     const days = currentWeekRange
       ? Array.from({ length: 7 }, (_, index) => {
           const date = addDays(currentWeekRange.start, index);
@@ -600,7 +618,7 @@ function buildSummary(participant, logs, view, selectedDate) {
             date,
             shortDate: shortDate(date),
             log,
-            points: log ? Number(log.dailyPoints ?? calculateDailyPoints(log)) : 0,
+            points: log ? getDisplayPointsValue(log) : 0,
             workoutBonus: Boolean(log?.workoutDone),
             mobilityBonus: Boolean(log?.mobilityDone),
           };
@@ -618,6 +636,7 @@ function buildSummary(participant, logs, view, selectedDate) {
 
     return {
       isPreCompetition: false,
+      isBaselineWeek: currentWeek === 0,
       periodLabel: getWeeklyLabel(currentWeek),
       totalPoints: standing.weeklyTotal,
       pointsText: `${standing.weeklyTotal} pts`,
@@ -649,7 +668,7 @@ function buildSummary(participant, logs, view, selectedDate) {
   const weeklyStandings = isPreCompetition ? [] : monthWeeks.map((week) => getWeeklyStanding(participant, logs, week));
   const monthCalendarWeeks = buildMonthCalendarWeeks(participantLogs, logs, participant, currentYear, currentMonth);
   const totalMonthPoints = isPreCompetition
-    ? monthLogs.reduce((sum, entry) => sum + Number(entry.dailyPoints ?? calculateDailyPoints(entry)), 0)
+    ? monthLogs.reduce((sum, entry) => sum + getDisplayPointsValue(entry), 0)
     : weeklyStandings.reduce((sum, standing) => sum + standing.weeklyTotal, 0);
   const avgActiveMinutes = monthLogs.length
     ? monthLogs.reduce((sum, entry) => sum + Number(entry.activeMinutes || 0), 0) / monthLogs.length
@@ -661,6 +680,7 @@ function buildSummary(participant, logs, view, selectedDate) {
 
   return {
     isPreCompetition,
+    isBaselineWeek: false,
     periodLabel: today.toLocaleDateString(undefined, { month: 'long', year: 'numeric' }),
     totalPoints: totalMonthPoints,
     pointsText: `${totalMonthPoints} pts`,
@@ -682,6 +702,7 @@ function buildSummary(participant, logs, view, selectedDate) {
 function buildEmptySummary() {
   return {
     isPreCompetition: false,
+    isBaselineWeek: false,
     periodLabel: 'No participant selected',
     totalPoints: 0,
     pointsText: '0 / 10',
@@ -711,16 +732,16 @@ function getWeeklyStanding(participant, logs, selectedWeek) {
   const weekLogs = logs.filter((log) => matchesParticipant(participant, log) && Number(log.challengeWeek) === selectedWeek);
 
   if (selectedWeek <= 0) {
-    const baselineTotal = weekLogs.reduce((sum, log) => sum + Number(log.dailyPoints ?? calculateDailyPoints(log)), 0);
+    const previewTotal = weekLogs.reduce((sum, log) => sum + getDisplayPointsValue(log), 0);
     return {
       consistencyBonus: 0,
       improvementBonus: 0,
       personalBestBonus: 0,
-      weeklyTotal: baselineTotal,
+      weeklyTotal: previewTotal,
     };
   }
 
-  const dailyPointsTotal = weekLogs.reduce((sum, log) => sum + Number(log.dailyPoints ?? calculateDailyPoints(log)), 0);
+  const dailyPointsTotal = weekLogs.reduce((sum, log) => sum + getPointsValue(log), 0);
   const activeDays = weekLogs.filter((log) => isActiveDay(log)).length;
   const consistencyBonus = calculateConsistencyBonus(activeDays);
   const avgActiveMinutes = weekLogs.length
@@ -740,7 +761,7 @@ function getWeeklyStanding(participant, logs, selectedWeek) {
     const priorWeekLogs = logs.filter((log) => matchesParticipant(participant, log) && Number(log.challengeWeek) === week);
     if (!priorWeekLogs.length) continue;
 
-    const priorDailyTotal = priorWeekLogs.reduce((sum, log) => sum + Number(log.dailyPoints ?? calculateDailyPoints(log)), 0);
+    const priorDailyTotal = priorWeekLogs.reduce((sum, log) => sum + getPointsValue(log), 0);
     const priorActiveDays = priorWeekLogs.filter((log) => isActiveDay(log)).length;
     const priorConsistency = calculateConsistencyBonus(priorActiveDays);
     const priorAvgActive = priorWeekLogs.reduce((sum, log) => sum + Number(log.activeMinutes || 0), 0) / priorWeekLogs.length;
@@ -864,7 +885,7 @@ function buildMonthCalendarWeeks(participantLogs, allLogs, participant, year, mo
           date,
           dayOfMonth: cursor.getDate(),
           log,
-          points: log ? Number(log.dailyPoints ?? calculateDailyPoints(log)) : 0,
+          points: log ? getDisplayPointsValue(log) : 0,
           workoutBonus: Boolean(log?.workoutDone),
           mobilityBonus: Boolean(log?.mobilityDone),
         });
